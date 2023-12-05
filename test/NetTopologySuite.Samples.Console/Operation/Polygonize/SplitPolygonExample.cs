@@ -8,7 +8,6 @@ using NUnit.Framework;
 
 namespace NetTopologySuite.Samples.Operation.Poligonize
 {
-
     /*
      * based on
      * http://blog.opengeo.org/2012/06/21/splitpolygon-wps-process-p1/
@@ -78,7 +77,7 @@ namespace NetTopologySuite.Samples.Operation.Poligonize
 
         internal static Geometry ClipPolygon(Geometry polygon, IPolygonal clipPolygonal)
         {
-            var clipPolygon = (Geometry) clipPolygonal;
+            var clipPolygon = (Geometry)clipPolygonal;
             var nodedLinework = polygon.Boundary.Union(clipPolygon.Boundary);
             var polygons = Polygonize(nodedLinework);
 
@@ -91,7 +90,7 @@ namespace NetTopologySuite.Samples.Operation.Poligonize
             var output = new List<Geometry>();
             for (int i = 0; i < polygons.NumGeometries; i++)
             {
-                var candpoly = (Polygon) polygons.GetGeometryN(i);
+                var candpoly = (Polygon)polygons.GetGeometryN(i);
                 var interiorPoint = candpoly.InteriorPoint;
                 if (polygon.Contains(interiorPoint) &&
                     /*prepClipPolygon.Contains(candpoly)*/
@@ -139,22 +138,32 @@ namespace NetTopologySuite.Samples.Operation.Poligonize
 
             string[] lineWkts = new[]
             {
+                //<image url="$(ProjectDir)\DocumentImages\SplitPolygon01.png"/>
                 "MULTILINESTRING((50 -10, 50 20),(50 110, 50 80))",
+                //<image url="$(ProjectDir)\DocumentImages\SplitPolygon02.png"/>
                 "LINESTRING(50 20, 50 -10, 110 -10, 110 110, 50 110, 50 80)",
+                //<image url="$(ProjectDir)\DocumentImages\SplitPolygon03.png"/>
                 "LINESTRING(50 -10, 50 48, 51 49, 49 51, 50 52, 50 110)",
+                //<image url="$(ProjectDir)\DocumentImages\SplitPolygon04.png"/>
                 "LINESTRING(49 -10, 51 50, 49 110)",
+                //<image url="$(ProjectDir)\DocumentImages\SplitPolygon05.png"/>
                 "LINESTRING(50 -10, 50 110)",
+                //<image url="$(ProjectDir)\DocumentImages\SplitPolygon06.png"/>
                 "LINESTRING(5 -10, 5 110)",
+                //<image url="$(ProjectDir)\DocumentImages\SplitPolygon07.png"/>
                 "LINESTRING(5 -10, 5 95, 110 95)",
+                //<image url="$(ProjectDir)\DocumentImages\SplitPolygon08.png"/>
+                //分割结果——注意为了清晰起见对分割结果作了偏移
+                //<image url="$(ProjectDir)\DocumentImages\SplitPolygon08Result.png"/>
                 "LINESTRING(5 -10, 5 110, 110 50)"
             };
 
             foreach (string lineWkt in lineWkts)
                 DoSplitTest(polygon, lineWkt);
-
         }
 
-        internal void RunClip()
+        [Test]
+        public void RunClip()
         {
             var reader = new WKTReader();
             var polygon = reader.Read("POLYGON((0 0, 0 100, 100 100, 100 0, 0 0), (10 10, 90 10, 90 90, 10 90, 10 10))");
@@ -169,6 +178,7 @@ namespace NetTopologySuite.Samples.Operation.Poligonize
             {
                 var polygonal = (IPolygonal)reader.Read(lineWkt);
                 Console.WriteLine(string.Format("\nwith\n{0}", lineWkt));
+                //<image url = "$(ProjectDir)\DocumentImages\ClipPolygon01.png" />
                 var clippedPolygons = ClipPolygon(polygon, polygonal);
                 Console.WriteLine(string.Format("results in:\n{0}", clippedPolygons));
             }
@@ -177,15 +187,20 @@ namespace NetTopologySuite.Samples.Operation.Poligonize
         [Test()]
         public void TestGG1()
         {
+            //<image url = "$(ProjectDir)\DocumentImages\SplitPolygon11.png" />
+
             DoSplitTest(@"POLYGON((0 0, 0 100, 100 100, 100 0, 0 0), (10 75, 10 90, 90 90, 90 75, 10 75))",
                         @"LINESTRING(50 110, 50 -10)");
         }
+
+        //<image url = "$(ProjectDir)\DocumentImages\SplitPolygon09.png" />
         [Test()]
         public void TestCheckerBoard()
         {
             DoSplitTest(@"POLYGON((0 0, 0 90, 90 90, 90 0, 0 0), (25 25, 65 25, 65 65, 25 65, 25 25))",
                         @"MULTILINESTRING((30 -5, 30 95), (60 -5, 60 95), (-5 30, 95 30), (-5 60, 95 60))");
         }
+        //<image url = "$(ProjectDir)\DocumentImages\SplitPolygon10.png" />
 
         [Test]
         public void TestWebExample()
@@ -220,6 +235,7 @@ namespace NetTopologySuite.Samples.Operation.Poligonize
                     "result.EqualsTopologically(expected)");
             }
         }
+
         private static void ToImage(Geometry geom1, Geometry geom2, Geometry geom3)
         {
             //var gpw = new Windows.Forms.GraphicsPathWriter();
@@ -267,16 +283,16 @@ namespace NetTopologySuite.Samples.Operation.Poligonize
 
         private static AffineTransformation CreateAffineTransformation(Envelope env, int offsetX = 0)
         {
-            int imageRatio = ImageWidth/ImageHeight;
-            double ratio = env.Width/env.Height;
+            int imageRatio = ImageWidth / ImageHeight;
+            double ratio = env.Width / env.Height;
             if (ratio > imageRatio)
             {
-                double growHeight = (env.Width/imageRatio - env.Height)/2;
+                double growHeight = (env.Width / imageRatio - env.Height) / 2;
                 env.ExpandBy(0, growHeight);
             }
             else if (ratio < imageRatio)
             {
-                double growWidth = (env.Height*imageRatio - env.Width)/2;
+                double growWidth = (env.Height * imageRatio - env.Width) / 2;
                 env.ExpandBy(growWidth, 0);
             }
 
@@ -290,6 +306,5 @@ namespace NetTopologySuite.Samples.Operation.Poligonize
             var atb = new AffineTransformationBuilder(s1, s2, s3, t1, t2, t3);
             return atb.GetTransformation();
         }
-
     }
 }
