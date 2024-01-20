@@ -7,7 +7,7 @@ namespace NetTopologySuite.Tests.NUnit.Clip
 {
     public class RectangleClipPolygonTest : GeometryTestCase
     {
-
+        //<image url="$(ProjectDir)\DocumentImages\RectangleClip01.png"/>
         [Test]
         public void TestSimple()
         {
