@@ -27,7 +27,7 @@ namespace NetTopologySuite.Tests.NUnit.Clip
                 "POLYGON EMPTY"
             );
         }
-
+        //<image url="$(ProjectDir)\DocumentImages\RectangleClip03.png"/>
         [Test]
         public void TestMultiOneOutside()
         {

@@ -3,36 +3,50 @@ using NUnit.Framework;
 
 namespace NetTopologySuite.Tests.NUnit.Algorithm.Hull
 {
+    //Note 可直接从 https://sourceforge.net/projects/jts-topology-suite.mirror/files/1.19.0/JTSTestBuilder.jar/download 下载方便测试
     public class PolygonHullSimplifierTest : GeometryTestCase
     {
         [Test]
         public void TestOuterSimple()
         {
+            //<image url="$(ProjectDir)\DocumentImages\CheckHullOuter01_Original.png"/>
             string wkt = "POLYGON ((30 90, 10 40, 40 10, 70 10, 90 30, 80 80, 70 40, 30 40, 50 50, 60 70, 30 90))";
+            //<image url="$(ProjectDir)\DocumentImages\CheckHullOuter01_0.png"/>
             CheckHullOuter(wkt, 0, "POLYGON ((30 90, 80 80, 90 30, 70 10, 40 10, 10 40, 30 90))");
+            //<image url="$(ProjectDir)\DocumentImages\CheckHullOuter01_0.8.png"/>
             CheckHullOuter(wkt, 0.8, "POLYGON ((30 90, 60 70, 80 80, 90 30, 70 10, 40 10, 10 40, 30 90))");
+            //<image url="$(ProjectDir)\DocumentImages\CheckHullOuter01_1.png"/>
             CheckHullOuter(wkt, 1, "POLYGON ((30 90, 10 40, 40 10, 70 10, 90 30, 80 80, 70 40, 30 40, 50 50, 60 70, 30 90))");
         }
 
         [Test]
         public void TestOuterZGore()
         {
+            //<image url="$(ProjectDir)\DocumentImages\CheckHullOuter02_Original.png"/>
             string wkt = "POLYGON ((10 90, 40 60, 20 40, 40 20, 70 50, 40 30, 30 40, 60 70, 50 90, 90 90, 90 10, 10 10, 10 90))";
+            //<image url="$(ProjectDir)\DocumentImages\CheckHullOuter02_0.5.png"/>
             CheckHullOuter(wkt, 0.5, "POLYGON ((10 90, 50 90, 90 90, 90 10, 10 10, 10 90))");
+            //<image url="$(ProjectDir)\DocumentImages\CheckHullOuter02_0.6.png"/>
             CheckHullOuter(wkt, 0.6, "POLYGON ((10 90, 40 60, 60 70, 50 90, 90 90, 90 10, 10 10, 10 90))");
+            //<image url="$(ProjectDir)\DocumentImages\CheckHullOuter02_0.7.png"/>
             CheckHullOuter(wkt, 0.7, "POLYGON ((10 90, 40 60, 30 40, 60 70, 50 90, 90 90, 90 10, 10 10, 10 90))");
         }
 
+        //Note 可用来对多段线的点进行简化
         [Test]
         public void TestOuterFlat()
         {
+            //<image url="$(ProjectDir)\DocumentImages\CheckHullOuter03_Original.png"/>
             CheckHullOuter("POLYGON ((10 10, 10 90, 90 90, 90 50, 90 10, 50 10, 10 10))",
+            //<image url="$(ProjectDir)\DocumentImages\CheckHullOuter03_0.4.png"/>
                 0.4, "POLYGON ((10 10, 10 90, 90 90, 90 10, 10 10))");
         }
 
         [Test]
         public void TestInner()
         {
+            //TODO 理解为什么不包括点 (25,17)
+            //<image url="$(ProjectDir)\DocumentImages\CheckHullInner01.png"/>
             CheckHullInner("POLYGON ((11 14, 2 31, 18 29, 25 17, 38 16, 29 5, 19 11, 11 0, 0 10, 11 14))",
                 0.5, "POLYGON ((19 11, 29 5, 18 29, 2 31, 19 11))");
         }
@@ -96,7 +110,6 @@ namespace NetTopologySuite.Tests.NUnit.Algorithm.Hull
         {
             CheckHull(wkt, false, vertexNumFraction, wktExpected);
         }
-
 
         private void CheckHull(string wkt, bool isOuter, double vertexNumFraction, string wktExpected)
         {

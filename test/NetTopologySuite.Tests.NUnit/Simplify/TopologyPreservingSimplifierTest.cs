@@ -33,6 +33,7 @@ namespace NetTopologySuite.Tests.NUnit.Simplify
                 .Test();
         }
 
+        //<image url="$(ProjectDir)\DocumentImages\MultiPolygonWithSmallComponents.png"/>
         /// <summary>
         /// TestMultiPolygonWithSmallComponents
         /// </summary>
@@ -238,7 +239,7 @@ namespace NetTopologySuite.Tests.NUnit.Simplify
         }
     }
 
-    static class TPSimplifierResult
+    internal static class TPSimplifierResult
     {
         private static readonly WKTReader Rdr = new WKTReader();
 
