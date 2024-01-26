@@ -6,6 +6,8 @@ using NetTopologySuite.Utilities;
 namespace NetTopologySuite.Index.Strtree
 {
     /// <summary>
+    /// STR(Sort - Tile - Recursive，递归网格排序)<br/>
+    /// STR算法本质上只是R树的一种构建算法，STR R-Tree本质上仍是R树<br/>
     /// A query-only R-tree created using the Sort-Tile-Recursive (STR) algorithm.
     /// For two-dimensional spatial data.
     /// <para/>

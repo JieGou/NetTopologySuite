@@ -5,6 +5,9 @@ using NUnit.Framework;
 
 namespace NetTopologySuite.Tests.NUnit.Operation.Union
 {
+    /// <summary>
+    /// ∫œ≤¢≤‚ ‘
+    /// </summary>
     [TestFixture]
     public class UnaryUnionTest : GeometryTestCase
     {

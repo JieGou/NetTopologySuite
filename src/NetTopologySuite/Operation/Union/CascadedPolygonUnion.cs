@@ -18,6 +18,7 @@ using NetTopologySuite.Utilities;
 namespace NetTopologySuite.Operation.Union
 {
     /// <summary>
+    /// 级联多边形合并<br/>
     /// Provides an efficient method of unioning a collection of
     /// <see cref="IPolygonal"/> geometries.
     /// The geometries are indexed using a spatial index,
