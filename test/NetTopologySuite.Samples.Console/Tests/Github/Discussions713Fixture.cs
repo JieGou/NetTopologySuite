@@ -10,6 +10,50 @@ namespace NetTopologySuite.Samples.Tests.Github
     internal class Discussions713Fixture
     {
         [Test, Description("CascadedPolygonUnion with artifacts")]
+        public void CascadedPolygonUnionTestNew1()
+        {
+            var rdr = new IO.WKTReader();
+            //<image url="$(ProjectDir)\DocumentImages\CascadeUnionBefore.png"/>
+            var polygons = new List<Geometry>
+                                 {
+                                     rdr.Read("POLYGON ((80 4490, 440 4490, 440 4160, 80 4160, 80 4490), (220 4390, 340 4390, 340 4270, 220 4270, 220 4390))"),
+                                     rdr.Read("POLYGON ((410 4610, 780 4610, 780 4310, 410 4310, 410 4610))"),
+                                     rdr.Read("POLYGON ((1000 4230, 700 4230, 700 4450, 1000 4450, 1000 4230))"),
+                                 };
+            var mp = polygons[0].Factory.BuildGeometry(polygons);
+            TestContext.WriteLine(mp.ToString());
+
+            //<image url="$(ProjectDir)\DocumentImages\CascadeUnionResult.png"/>
+            var result = CascadedPolygonUnion.Union(polygons);
+            TestContext.WriteLine(result.ToString());
+
+            result = UnaryUnionNG.Union(polygons, new PrecisionModel(10_000_000));
+            TestContext.WriteLine(result.ToString());
+        }
+
+        [Test, Description("CascadedPolygonUnion with artifacts")]
+        public void CascadedPolygonUnionTestNew2()
+        {
+            var rdr = new IO.WKTReader();
+            //<image url="$(ProjectDir)\DocumentImages\clusteringUnionBefore.png"/>
+            var polygons = new List<Geometry>
+                                 {
+                                     rdr.Read("MULTIPOLYGON (((860 660, 1090 810, 1280 520, 1010 300, 860 660)), ((1120 590, 1393 715, 1545 422, 1260 260, 1120 590)), ((1750 730, 1763 738, 2080 920, 2270 550, 1750 730)), ((1975 749, 2150 660, 1980 360, 1975 749)))"),
+                                 };
+            var mp = polygons[0].Factory.BuildGeometry(polygons);
+            TestContext.WriteLine(mp.ToString());
+
+            //<image url="$(ProjectDir)\DocumentImages\clusteringUnionAfter_Wrong.png"/>
+            //Note 但在某些场景下得到的又是正确的答案
+            var result = CascadedPolygonUnion.Union(polygons);
+            TestContext.WriteLine(result.ToString());
+
+            //<image url="$(ProjectDir)\DocumentImages\clusteringUnionAfter_Right.png"/>
+            result = UnaryUnionNG.Union(polygons, new PrecisionModel(10_000_000));
+            TestContext.WriteLine(result.ToString());
+        }
+
+        [Test, Description("CascadedPolygonUnion with artifacts")]
         public void CascadedPolygonUnionTest()
         {
             var polygon1 = new Polygon(new LinearRing(new[] { new Coordinate(390.57699736961104, 4661.279737082885)
