@@ -51,6 +51,7 @@ namespace NetTopologySuite.Tests.NUnit.Operation.OverlayNG
         /**
          * Sequential lines are still noded
          */
+
         [Test]
         public void TestLinesSequential()
         {
@@ -59,8 +60,9 @@ namespace NetTopologySuite.Tests.NUnit.Operation.OverlayNG
         }
 
         /**
-         * Overlapping lines are noded with common portions merged 
+         * Overlapping lines are noded with common portions merged
          */
+
         [Test]
         public void TestLinesOverlapping()
         {
@@ -71,9 +73,11 @@ namespace NetTopologySuite.Tests.NUnit.Operation.OverlayNG
         /**
          * A network of lines is dissolved noded at degree > 2 vertices
          */
+
         [Test]
         public void TestLinesNetwork()
         {
+            //<image url="$(ProjectDir)\DocumentImages\LinesNetwork.png"/>
             CheckUnion("MULTILINESTRING ((1 9, 3.1 8, 5 7, 7 8, 9 9), (5 7, 5 3, 4 3, 2 3), (9 5, 7 4, 5 3, 8 1))",
                 "MULTILINESTRING ((1 9, 3.1 8), (2 3, 4 3), (3.1 8, 5 7), (4 3, 5 3), (5 3, 5 7), (5 3, 7 4), (5 3, 8 1), (5 7, 7 8), (7 4, 9 5), (7 8, 9 9))");
         }
@@ -86,5 +90,4 @@ namespace NetTopologySuite.Tests.NUnit.Operation.OverlayNG
             CheckEqual(expected, result);
         }
     }
-
 }
