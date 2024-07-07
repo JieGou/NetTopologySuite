@@ -18,7 +18,6 @@ namespace NetTopologySuite.Tests.NUnit.Simplify
             CheckTPSNoChange("POLYGON(EMPTY)", 1);
         }
 
-        //<image url="$(ProjectDir)\DocumentImages\MultiPolygonWithSmallComponents.png"/>
         /// <summary>
         /// TestMultiPolygonWithSmallComponents
         /// </summary>
@@ -29,7 +28,7 @@ namespace NetTopologySuite.Tests.NUnit.Simplify
         /// holes, causing invalid topology.
         /// </remarks>
         [Test, Ignore("Known to fail")]
-        public void TestMultiPolygonWithSmallComponents()
+        public void TestMultiPolygonWithSmallComponentsX()
         {
             CheckTPS("POLYGON ((20 220, 40 220, 60 220, 80 220, 100 220, 120 220, 140 220, 140 180, 100 180, 60 180,     20 180, 20 220))",
         10,
@@ -199,9 +198,8 @@ namespace NetTopologySuite.Tests.NUnit.Simplify
         public void TestPolygonKeepFlatEndpointWithTouch()
         {
             CheckTPSNoChange("POLYGON ((0 0, 5 2.05, 10 0, 10 10, 0 10, 0 0),  (5 2.1, 6 2, 6 4, 4 4, 4 2, 5 2.1))",
-                0.1 );
+                0.1);
         }
-
 
         [Test]
         public void TestPolygonKeepEndpointWithCross()
@@ -234,8 +232,7 @@ namespace NetTopologySuite.Tests.NUnit.Simplify
             );
         }
 
-
-        //-- vertex is not removed due to overly-restrictive heuristic result length calculation? 
+        //-- vertex is not removed due to overly-restrictive heuristic result length calculation?
         [Test]
         public void TestPolygonSize5NotSimplfied()
         {
@@ -246,12 +243,15 @@ namespace NetTopologySuite.Tests.NUnit.Simplify
             );
         }
 
-    /**
-     * Test is from http://postgis.refractions.net/pipermail/postgis-users/2008-April/019327.html
-     * Exhibits the issue where simplified polygon shells can "jump" across
-     * holes, causing invalid topology.
-     */
-    [Test]
+        //<image url="$(ProjectDir)\DocumentImages\MultiPolygonWithSmallComponents.png"/>
+
+        /**
+         * Test is from http://postgis.refractions.net/pipermail/postgis-users/2008-April/019327.html
+         * Exhibits the issue where simplified polygon shells can "jump" across
+         * holes, causing invalid topology.
+         */
+
+        [Test]
         public void TestMultiPolygonWithSmallComponents()
         {
             CheckTPS(
@@ -263,6 +263,7 @@ namespace NetTopologySuite.Tests.NUnit.Simplify
         /**
          * Test is from http://lists.jump-project.org/pipermail/jts-devel/2008-February/002350.html
          */
+
         [Test]
         public void TestPolygonWithSpike()
         {
@@ -300,7 +301,6 @@ namespace NetTopologySuite.Tests.NUnit.Simplify
         }
 
         [Test]
-        //-- test added in https://github.com/libgeos/geos/pull/1110
         public void TestRingEndpointRemoval()
         {
             CheckTPS(
@@ -308,7 +308,6 @@ namespace NetTopologySuite.Tests.NUnit.Simplify
                 20,
                 "POLYGON ((-222618.41756525903 6299886.966175825, -222510 6300300, -221720.85158014414 6300132.680680807, -222448.77936063593 6299647.669870703, -222618.41756525903 6299886.966175825), (-222467.0202338936 6299970.185860572, -222456.57057590774 6299931.950053182, -222490.56062790897 6299837.359974515, -222415.1394852571 6299926.6972160805, -222421.19226152284 6299963.389132584, -222467.0202338936 6299970.185860572))");
         }
-
 
         private void CheckTPS(string wkt, double tolerance, string wktExpected)
         {
@@ -325,5 +324,4 @@ namespace NetTopologySuite.Tests.NUnit.Simplify
             CheckTPS(wkt, tolerance, wkt);
         }
     }
-
 }
