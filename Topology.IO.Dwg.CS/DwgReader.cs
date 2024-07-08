@@ -107,7 +107,7 @@ namespace Topology.IO.Dwg.CS
         /// </remarks>
         public LineString ReadLineString(Polyline polyline)
         {
-            CoordinateList points = new CoordinateList();
+            var points = new CoordinateList();
             for (int i = 0; i <= polyline.NumberOfVertices - 1; i++)
             {
                 switch (polyline.GetSegmentType(i))
@@ -133,7 +133,7 @@ namespace Topology.IO.Dwg.CS
             {
                 if (polyline.Elevation != 0)
                 {
-                    foreach (Coordinate coord in points)
+                    foreach (var coord in points)
                         coord.Z = polyline.Elevation;
                 }
 
@@ -156,16 +156,16 @@ namespace Topology.IO.Dwg.CS
         /// </remarks>
         public LineString ReadLineString(Polyline3d polyline3d)
         {
-            CoordinateList points = new CoordinateList();
+            var points = new CoordinateList();
 
             if (polyline3d.PolyType == Poly3dType.SimplePoly)
             {
-                Transaction trans = polyline3d.Database.TransactionManager.StartTransaction();
+                var trans = polyline3d.Database.TransactionManager.StartTransaction();
 
-                IEnumerator iterator = polyline3d.GetEnumerator();
+                var iterator = polyline3d.GetEnumerator();
                 while (iterator.MoveNext())
                 {
-                    PolylineVertex3d vertex = (PolylineVertex3d)iterator.Current;
+                    var vertex = (PolylineVertex3d)iterator.Current;
                     points.Add(ReadCoordinate(vertex.Position), AllowRepeatedCoordinates);
                 }
                 trans.Commit();
@@ -173,7 +173,7 @@ namespace Topology.IO.Dwg.CS
             }
             else
             {
-                DBObjectCollection collection = new DBObjectCollection();
+                var collection = new DBObjectCollection();
                 polyline3d.Explode(collection);
                 foreach (Line line in collection)
                 {
@@ -205,15 +205,15 @@ namespace Topology.IO.Dwg.CS
         /// </remarks>
         public LineString ReadLineString(Polyline2d polyline2d)
         {
-            CoordinateList points = new CoordinateList();
+            var points = new CoordinateList();
 
             if (polyline2d.PolyType == Poly2dType.SimplePoly)
             {
-                Transaction TR = polyline2d.Database.TransactionManager.StartTransaction();
-                IEnumerator iterator = polyline2d.GetEnumerator();
+                var TR = polyline2d.Database.TransactionManager.StartTransaction();
+                var iterator = polyline2d.GetEnumerator();
                 while (iterator.MoveNext())
                 {
-                    Vertex2d vertex = (Vertex2d)iterator.Current;
+                    var vertex = (Vertex2d)iterator.Current;
                     points.Add(ReadCoordinate(vertex.Position), AllowRepeatedCoordinates);
                 }
                 TR.Commit();
@@ -221,7 +221,7 @@ namespace Topology.IO.Dwg.CS
             }
             else
             {
-                DBObjectCollection collection = new DBObjectCollection();
+                var collection = new DBObjectCollection();
                 polyline2d.Explode(collection);
                 foreach (Line line in collection)
                 {
@@ -251,7 +251,7 @@ namespace Topology.IO.Dwg.CS
         /// </remarks>
         public LineString ReadLineString(Line line)
         {
-            CoordinateList points = new CoordinateList();
+            var points = new CoordinateList();
             points.Add(ReadCoordinate(line.StartPoint));
             points.Add(ReadCoordinate(line.EndPoint), AllowRepeatedCoordinates);
 
@@ -272,7 +272,7 @@ namespace Topology.IO.Dwg.CS
         /// </remarks>
         public LineString ReadLineString(Mline multiLine)
         {
-            CoordinateList points = new CoordinateList();
+            var points = new CoordinateList();
 
             for (int i = 0; i <= multiLine.NumberOfVertices - 1; i++)
                 points.Add(ReadCoordinate(multiLine.VertexAt(i)), AllowRepeatedCoordinates);
@@ -296,7 +296,7 @@ namespace Topology.IO.Dwg.CS
         /// <remarks></remarks>
         public LineString ReadLineString(Arc arc)
         {
-            CoordinateList points = new CoordinateList(GetTessellatedCurveCoordinates(arc), AllowRepeatedCoordinates);
+            var points = new CoordinateList(GetTessellatedCurveCoordinates(arc), AllowRepeatedCoordinates);
 
             if (points.Count > 1)
                 return GeometryFactory.CreateLineString(points.ToCoordinateArray());
@@ -315,15 +315,15 @@ namespace Topology.IO.Dwg.CS
         /// </remarks>
         public MultiPolygon ReadMultiPolygon(MPolygon multiPolygon)
         {
-            List<Polygon> polygons = new List<Polygon>();
+            var polygons = new List<Polygon>();
 
             for (int i = 0; i <= multiPolygon.NumMPolygonLoops - 1; i++)
             {
                 if (multiPolygon.GetLoopDirection(i) == LoopDirection.Exterior)
                 {
-                    LinearRing shell = GeometryFactory.CreateLinearRing(GetMPolygonLoopCoordinates(multiPolygon, multiPolygon.GetMPolygonLoopAt(i)));
+                    var shell = GeometryFactory.CreateLinearRing(GetMPolygonLoopCoordinates(multiPolygon, multiPolygon.GetMPolygonLoopAt(i)));
 
-                    List<LinearRing> holes = new List<LinearRing>();
+                    var holes = new List<LinearRing>();
                     foreach (int j in multiPolygon.GetChildLoops(i))
                     {
                         if (multiPolygon.GetLoopDirection(j) == LoopDirection.Interior)
@@ -418,7 +418,7 @@ namespace Topology.IO.Dwg.CS
 
                 case "AcDbMPolygon":
                     // added due to possibly invalid MPolygons (returned by AutoCAD as ImpEntity)
-                    MPolygon ent = entity as MPolygon;
+                    var ent = entity as MPolygon;
                     if (ent != null)
                     {
                         return ReadMultiPolygon(ent);
@@ -437,7 +437,7 @@ namespace Topology.IO.Dwg.CS
 
         private Coordinate[] GetTessellatedCurveCoordinates(CircularArc3d curve)
         {
-            CoordinateList points = new CoordinateList();
+            var points = new CoordinateList();
 
             if (curve.StartPoint != curve.EndPoint)
             {
@@ -449,9 +449,9 @@ namespace Topology.IO.Dwg.CS
                         break;
 
                     case CurveTessellation.Linear:
-                        foreach (PointOnCurve3d item in curve.GetSamplePoints(Convert.ToInt32(CurveTessellationValue)))
+                        foreach (var item in curve.GetSamplePoints(Convert.ToInt32(CurveTessellationValue)))
                         {
-                            Point3d point = item.Point;
+                            var point = item.Point;
                             points.Add(ReadCoordinate(point));
                         }
 
@@ -468,9 +468,9 @@ namespace Topology.IO.Dwg.CS
                         if (segments > 128)
                             segments = 128;
 
-                        foreach (PointOnCurve3d item in curve.GetSamplePoints(Convert.ToInt32(segments)))
+                        foreach (var item in curve.GetSamplePoints(Convert.ToInt32(segments)))
                         {
-                            Point3d point = item.Point;
+                            var point = item.Point;
                             points.Add(ReadCoordinate(point));
                         }
 
@@ -483,12 +483,12 @@ namespace Topology.IO.Dwg.CS
 
         private Coordinate[] GetTessellatedCurveCoordinates(Matrix3d parentEcs, CircularArc2d curve)
         {
-            Matrix3d matrix = parentEcs.Inverse();
-            Point2d[] pts = curve.GetSamplePoints(3);
+            var matrix = parentEcs.Inverse();
+            var pts = curve.GetSamplePoints(3);
 
-            Point3d startPt = new Point3d(pts[0].X, pts[0].Y, 0);
-            Point3d midPt = new Point3d(pts[1].X, pts[1].Y, 0);
-            Point3d endPt = new Point3d(pts[2].X, pts[2].Y, 0);
+            var startPt = new Point3d(pts[0].X, pts[0].Y, 0);
+            var midPt = new Point3d(pts[1].X, pts[1].Y, 0);
+            var endPt = new Point3d(pts[2].X, pts[2].Y, 0);
 
             startPt.TransformBy(matrix);
             midPt.TransformBy(matrix);
@@ -519,11 +519,11 @@ namespace Topology.IO.Dwg.CS
 
         private Coordinate[] GetMPolygonLoopCoordinates(MPolygon multiPolygon, MPolygonLoop multiPolygonLoop)
         {
-            CoordinateList points = new CoordinateList();
+            var points = new CoordinateList();
 
             for (int i = 0; i <= multiPolygonLoop.Count - 1; i++)
             {
-                BulgeVertex vert = multiPolygonLoop[i];
+                var vert = multiPolygonLoop[i];
                 if (vert.Bulge == 0) points.Add(ReadCoordinate(vert.Vertex), AllowRepeatedCoordinates);
                 else
                 {
@@ -531,7 +531,7 @@ namespace Topology.IO.Dwg.CS
                     if (i + 1 <= multiPolygonLoop.Count - 1) endPoint = multiPolygonLoop[i + 1].Vertex;
                     else endPoint = multiPolygonLoop[0].Vertex;
 
-                    foreach (Coordinate point in GetTessellatedCurveCoordinates(multiPolygon.Ecs, vert.Vertex, endPoint, vert.Bulge))
+                    foreach (var point in GetTessellatedCurveCoordinates(multiPolygon.Ecs, vert.Vertex, endPoint, vert.Bulge))
                         points.Add(point, AllowRepeatedCoordinates);
                 }
             }
@@ -544,11 +544,11 @@ namespace Topology.IO.Dwg.CS
 
         public GeometryCollection ReadGeometryCollection(DBObjectCollection dbObjects)
         {
-            List<Geometry> col = new List<Geometry>();
+            var col = new List<Geometry>();
 
             foreach (DBObject dbObj in dbObjects)
             {
-                Geometry geom = ReadGeometry((Entity)dbObj);
+                var geom = ReadGeometry((Entity)dbObj);
                 if (geom != null) col.Add(geom);
             }
 
@@ -557,17 +557,17 @@ namespace Topology.IO.Dwg.CS
 
         public GeometryCollection ReadGeometryCollection(ObjectId[] objectIds)
         {
-            List<Geometry> col = new List<Geometry>();
+            var col = new List<Geometry>();
 
-            Database db = HostApplicationServices.WorkingDatabase;
-            Transaction tr = db.TransactionManager.StartTransaction();
+            var db = HostApplicationServices.WorkingDatabase;
+            var tr = db.TransactionManager.StartTransaction();
 
             try
             {
-                foreach (ObjectId objId in objectIds)
+                foreach (var objId in objectIds)
                 {
-                    Entity ent = tr.GetObject(objId, OpenMode.ForRead, false) as Entity;
-                    Geometry geom = ReadGeometry(ent);
+                    var ent = tr.GetObject(objId, OpenMode.ForRead, false) as Entity;
+                    var geom = ReadGeometry(ent);
                     if (geom != null) col.Add(geom);
                 }
                 tr.Commit();
@@ -582,17 +582,17 @@ namespace Topology.IO.Dwg.CS
 
         public GeometryCollection ReadGeometryCollection(ObjectIdCollection objectIds)
         {
-            List<Geometry> col = new List<Geometry>();
+            var col = new List<Geometry>();
 
-            Database db = HostApplicationServices.WorkingDatabase;
-            Transaction tr = db.TransactionManager.StartTransaction();
+            var db = HostApplicationServices.WorkingDatabase;
+            var tr = db.TransactionManager.StartTransaction();
 
             try
             {
                 foreach (ObjectId objId in objectIds)
                 {
-                    Entity ent = tr.GetObject(objId, OpenMode.ForRead, false) as Entity;
-                    Geometry geom = ReadGeometry(ent);
+                    var ent = tr.GetObject(objId, OpenMode.ForRead, false) as Entity;
+                    var geom = ReadGeometry(ent);
                     if (geom != null) col.Add(geom);
                 }
                 tr.Commit();

@@ -45,7 +45,7 @@
       <Private>False</Private>
     </Reference>
     <Reference Include="AcMPolygonMGD">
-      <HintPath>C:\Program Files\Autodesk\AutoCAD 2016\AcMPolygonMGD.dll</HintPath>
+      <HintPath>C:\Program Files\Autodesk\AutoCAD 2022\AcMPolygonMGD.dll</HintPath>
       <Private>False</Private>
     </Reference>
     <Reference Include="System" />
@@ -64,11 +64,19 @@
     <Compile Include="GeometryReader.cs" />
     <Compile Include="GeometryReaderWriter.cs" />
     <Compile Include="GeometryWriter.cs" />
+    <Compile Include="GraphBuilder2.cs" />
+    <Compile Include="PathFinder.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
   </ItemGroup>
   <ItemGroup>
-    <PackageReference Include="NetTopologySuite">
-      <Version>2.5.0</Version>
+    <ProjectReference Include="..\src\NetTopologySuite\NetTopologySuite.csproj">
+      <Project>{5770daa9-84e5-4770-af43-f6b815894368}</Project>
+      <Name>NetTopologySuite</Name>
+    </ProjectReference>
+  </ItemGroup>
+  <ItemGroup>
+    <PackageReference Include="QuickGraph">
+      <Version>3.6.61119.7</Version>
     </PackageReference>
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />

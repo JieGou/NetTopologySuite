@@ -107,9 +107,9 @@ namespace Topology.IO.Dwg.CS
         /// </remarks>
         public Polyline WritePolyline(LineString lineString)
         {
-            Polyline geometry = new Polyline();
+            var geometry = new Polyline();
             int i = 0;
-            foreach (Coordinate coordinate in lineString.Coordinates)
+            foreach (var coordinate in lineString.Coordinates)
             {
                 geometry.AddVertexAt(i, new Point2d(coordinate.X, coordinate.Y), 0, 0, 0);
                 i += 1;
@@ -135,9 +135,9 @@ namespace Topology.IO.Dwg.CS
         /// <remarks></remarks>
         public Polyline WritePolyline(LinearRing linearRing)
         {
-            Polyline geometry = new Polyline();
+            var geometry = new Polyline();
             int i = 0;
-            foreach (Coordinate coordinate in linearRing.Coordinates)
+            foreach (var coordinate in linearRing.Coordinates)
             {
                 geometry.AddVertexAt(i, WritePoint2d(coordinate), 0, 0, 0);
                 i += 1;
@@ -165,12 +165,12 @@ namespace Topology.IO.Dwg.CS
         /// <remarks></remarks>
         public Polyline[] WritePolyline(Polygon polygon)
         {
-            List<Polyline> polylines = new List<Polyline>
+            var polylines = new List<Polyline>
             {
                 WritePolyline(polygon.Shell)
             };
 
-            foreach (LinearRing hole in polygon.Holes)
+            foreach (var hole in polygon.Holes)
                 polylines.Add(WritePolyline(hole));
 
             return polylines.ToArray();
@@ -188,8 +188,8 @@ namespace Topology.IO.Dwg.CS
         /// </remarks>
         public Polyline3d WritePolyline3d(LineString lineString)
         {
-            Point3dCollection points = new Point3dCollection();
-            foreach (Coordinate coordinate in lineString.Coordinates)
+            var points = new Point3dCollection();
+            foreach (var coordinate in lineString.Coordinates)
                 points.Add(WritePoint3d(coordinate));
             return new Polyline3d(Poly3dType.SimplePoly, points, lineString.StartPoint.EqualsExact(lineString.EndPoint));
         }
@@ -203,8 +203,8 @@ namespace Topology.IO.Dwg.CS
         /// <remarks></remarks>
         public Polyline3d WritePolyline3d(LinearRing linearRing)
         {
-            Point3dCollection points = new Point3dCollection();
-            foreach (Coordinate coordinate in linearRing.Coordinates)
+            var points = new Point3dCollection();
+            foreach (var coordinate in linearRing.Coordinates)
                 points.Add(WritePoint3d(coordinate));
             return new Polyline3d(Poly3dType.SimplePoly, points, true);
         }
@@ -221,8 +221,8 @@ namespace Topology.IO.Dwg.CS
         /// </remarks>
         public Polyline2d WritePolyline2d(LineString lineString)
         {
-            Point3dCollection points = new Point3dCollection();
-            foreach (Coordinate coordinate in lineString.Coordinates)
+            var points = new Point3dCollection();
+            foreach (var coordinate in lineString.Coordinates)
                 points.Add(WritePoint3d(coordinate));
             return new Polyline2d(Poly2dType.SimplePoly, points, 0, lineString.StartPoint.EqualsExact(lineString.EndPoint), 0, 0, null);
         }
@@ -236,8 +236,8 @@ namespace Topology.IO.Dwg.CS
         /// <remarks></remarks>
         public Polyline2d WritePolyline2d(LinearRing linearRing)
         {
-            Point3dCollection points = new Point3dCollection();
-            foreach (Coordinate coordinate in linearRing.Coordinates)
+            var points = new Point3dCollection();
+            foreach (var coordinate in linearRing.Coordinates)
                 points.Add(WritePoint3d(coordinate));
             return new Polyline2d(Poly2dType.SimplePoly, points, 0, true, 0, 0, null);
         }
@@ -250,7 +250,7 @@ namespace Topology.IO.Dwg.CS
         /// <remarks></remarks>
         public Line WriteLine(LineSegment lineSegment)
         {
-            Line geometry = new Line
+            var geometry = new Line
             {
                 StartPoint = WritePoint3d(lineSegment.P0),
                 EndPoint = WritePoint3d(lineSegment.P1)
@@ -266,7 +266,7 @@ namespace Topology.IO.Dwg.CS
         /// <remarks></remarks>
         public MPolygon WriteMPolygon(Polygon polygon)
         {
-            MPolygon ent = new MPolygon();
+            var ent = new MPolygon();
 
             foreach (MPolygonLoop polLoop in GetMPolygonLoopCollection(polygon))
                 ent.AppendMPolygonLoop(polLoop, false, 0);
@@ -283,7 +283,7 @@ namespace Topology.IO.Dwg.CS
         /// <remarks></remarks>
         public MPolygon WriteMPolygon(MultiPolygon multiPolygon)
         {
-            MPolygon ent = new MPolygon();
+            var ent = new MPolygon();
 
             foreach (Polygon polygon in multiPolygon.Geometries)
             {
@@ -337,9 +337,9 @@ namespace Topology.IO.Dwg.CS
 
         private MPolygonLoop GetMPolygonLoop(LinearRing linearRing)
         {
-            MPolygonLoop ent = new MPolygonLoop();
+            var ent = new MPolygonLoop();
 
-            foreach (Coordinate coord in linearRing.Coordinates)
+            foreach (var coord in linearRing.Coordinates)
                 ent.Add(new BulgeVertex(WritePoint2d(coord), 0));
 
             return ent;
@@ -347,12 +347,12 @@ namespace Topology.IO.Dwg.CS
 
         private MPolygonLoopCollection GetMPolygonLoopCollection(Polygon polygon)
         {
-            MPolygonLoopCollection col = new MPolygonLoopCollection
+            var col = new MPolygonLoopCollection
             {
                 GetMPolygonLoop(polygon.Shell)
             };
 
-            foreach (LinearRing hole in polygon.Holes)
+            foreach (var hole in polygon.Holes)
                 col.Add(GetMPolygonLoop(hole));
 
             return col;
