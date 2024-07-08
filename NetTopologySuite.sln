@@ -79,6 +79,10 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Documentation", "Documentat
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "NetTopologySuite.Tests.NUnit.Performance", "test\NetTopologySuite.Tests.NUnit.Performance\NetTopologySuite.Tests.NUnit.Performance.csproj", "{36BE3588-C9C0-4079-B84E-7788A2BA3DEF}"
 EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "ReaderWriter", "ReaderWriter", "{21D38989-CBCD-4B75-9672-558BA571C336}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Topology.IO.Dwg.CS", "Topology.IO.Dwg.CS\Topology.IO.Dwg.CS.csproj", "{F6038869-8215-477A-BFE9-22C0D63510EF}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -117,6 +121,10 @@ Global
 		{36BE3588-C9C0-4079-B84E-7788A2BA3DEF}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{36BE3588-C9C0-4079-B84E-7788A2BA3DEF}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{36BE3588-C9C0-4079-B84E-7788A2BA3DEF}.Release|Any CPU.Build.0 = Release|Any CPU
+		{F6038869-8215-477A-BFE9-22C0D63510EF}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{F6038869-8215-477A-BFE9-22C0D63510EF}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{F6038869-8215-477A-BFE9-22C0D63510EF}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{F6038869-8215-477A-BFE9-22C0D63510EF}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -128,6 +136,7 @@ Global
 		{D78F2066-2CB6-4AE0-ADAC-CF011B5083E8} = {AAD516A6-0F6D-4FFE-881C-37D15A4702C5}
 		{92BB4BF0-DB6E-462E-B806-DB1FE90051B0} = {AAD516A6-0F6D-4FFE-881C-37D15A4702C5}
 		{36BE3588-C9C0-4079-B84E-7788A2BA3DEF} = {AAD516A6-0F6D-4FFE-881C-37D15A4702C5}
+		{F6038869-8215-477A-BFE9-22C0D63510EF} = {21D38989-CBCD-4B75-9672-558BA571C336}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {3F26DAA4-E047-4A9E-828A-D49CA02F80E0}
