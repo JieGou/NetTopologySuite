@@ -21,6 +21,7 @@ using Autodesk.AutoCAD.Geometry;
 using System.Collections.Generic;
 using QuickGraph;
 using QuickGraph.Algorithms;
+using System;
 
 namespace Topology.IO.Dwg.CS
 {
@@ -129,6 +130,23 @@ namespace Topology.IO.Dwg.CS
                     {
                         var startPt = p1.Value;
 
+                        #region 从指定起点输出所有的路径
+                        var allPaths = new List<Tuple<List<IEdge<Coordinate>>, double>>();
+                        var root = dwgReader.ReadCoordinate(startPt);
+                        foreach (var target in graph.Vertices)
+                        {
+                            if (root.Equals(target)) continue;
+                            var tryGetPath = graph.ShortestPathsDijkstra(e => e.Source.Distance(e.Target), root);
+                            if (tryGetPath(target, out var itemPath))
+                            {
+                                allPaths.Add(new Tuple<List<IEdge<Coordinate>>, double>(itemPath.ToList(), itemPath.Sum(e => e.Source.Distance(e.Target))));
+                            }
+                        }
+                        var longestPath = allPaths.OrderByDescending(t => t.Item2).First();
+                        var longestLineString = path.BuildString(longestPath.Item1);
+
+                        #endregion
+
                         var pPtOpts = new PromptPointOptions("")
                         {
                             Message = "\n选择终点: ",
@@ -172,6 +190,12 @@ namespace Topology.IO.Dwg.CS
                                     outEnt.ColorIndex = 1;
                                     btr.AppendEntity(outEnt);
                                     tr.AddNewlyCreatedDBObject(outEnt, true);
+
+                                    //输出最长主路径 黄色
+                                    Entity longPl = writer.WritePolyline(longestLineString);
+                                    longPl.ColorIndex = 2;
+                                    btr.AppendEntity(longPl);
+                                    tr.AddNewlyCreatedDBObject(longPl, true);
                                 }
 
                                 tr.Commit();

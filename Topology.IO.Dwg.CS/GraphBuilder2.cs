@@ -242,7 +242,7 @@ namespace Topology.IO.Dwg.CS
         /// </summary>
         /// <param name="path">Shortest path from the QucikGraph Library</param>
         /// <returns></returns>
-        private LineString BuildString(IList<IEdge<Coordinate>> path)
+        public LineString BuildString(IList<IEdge<Coordinate>> path)
         {
             // if the path has no links then return a null reference
             if (path.Count < 1)
