@@ -102,13 +102,13 @@ namespace Topology.IO.Dwg.CS
             var geometrys = dwgReader.ReadGeometryCollection(ids);
             var lineStrings = geometrys.Where(g => g != null && g is LineString).Cast<LineString>().ToList();
 
-            var path = new GraphBuilder2(true);
-            path.Add(lineStrings.ToArray());
-            path.Initialize();
+            var graphBuilder = new GraphBuilder2(true);
+            graphBuilder.Add(lineStrings.ToArray());
+            graphBuilder.Initialize();
 
             #region 最小生成树？
 
-            var graph = path.graph;
+            var graph = graphBuilder.graph;
             var vertexs = graph.Vertices;
             var edges = graph.Edges;
             var undirectedGraph = BuildGraph(vertexs.ToList().ToArray(), edges.ToArray());
@@ -130,23 +130,6 @@ namespace Topology.IO.Dwg.CS
                     {
                         var startPt = p1.Value;
 
-                        #region 从指定起点输出所有的路径
-                        var allPaths = new List<Tuple<List<IEdge<Coordinate>>, double>>();
-                        var root = dwgReader.ReadCoordinate(startPt);
-                        foreach (var target in graph.Vertices)
-                        {
-                            if (root.Equals(target)) continue;
-                            var tryGetPath = graph.ShortestPathsDijkstra(e => e.Source.Distance(e.Target), root);
-                            if (tryGetPath(target, out var itemPath))
-                            {
-                                allPaths.Add(new Tuple<List<IEdge<Coordinate>>, double>(itemPath.ToList(), itemPath.Sum(e => e.Source.Distance(e.Target))));
-                            }
-                        }
-                        var longestPath = allPaths.OrderByDescending(t => t.Item2).First();
-                        var longestLineString = path.BuildString(longestPath.Item1);
-
-                        #endregion
-
                         var pPtOpts = new PromptPointOptions("")
                         {
                             Message = "\n选择终点: ",
@@ -164,9 +147,9 @@ namespace Topology.IO.Dwg.CS
                         }
                         else
                         {
-                            var startCoordinate = dwgReader.ReadCoordinate(startPt);
+                            var root = dwgReader.ReadCoordinate(startPt);
                             var endCoordinate = dwgReader.ReadCoordinate(endPt);
-                            var shortestPath = path.Perform(startCoordinate, endCoordinate);
+                            var shortestPath = graphBuilder.Perform(root, endCoordinate);
                             if (shortestPath == null)
                             {
                                 ed.WriteMessage("\n未找到路径");
@@ -186,16 +169,10 @@ namespace Topology.IO.Dwg.CS
                                 //foreach (LineString lineString in merger.GetMergedLineStrings())
                                 {
                                     //输出最短路径 红色
-                                    Entity outEnt = writer.WritePolyline(shortestPath);
-                                    outEnt.ColorIndex = 1;
-                                    btr.AppendEntity(outEnt);
-                                    tr.AddNewlyCreatedDBObject(outEnt, true);
-
-                                    //输出最长主路径 黄色
-                                    Entity longPl = writer.WritePolyline(longestLineString);
-                                    longPl.ColorIndex = 2;
-                                    btr.AppendEntity(longPl);
-                                    tr.AddNewlyCreatedDBObject(longPl, true);
+                                    Entity shortestPolyline = writer.WritePolyline(shortestPath);
+                                    shortestPolyline.ColorIndex = 1;
+                                    btr.AppendEntity(shortestPolyline);
+                                    tr.AddNewlyCreatedDBObject(shortestPolyline, true);
                                 }
 
                                 tr.Commit();
@@ -204,6 +181,138 @@ namespace Topology.IO.Dwg.CS
                             return;
                         }
                     }
+                }
+            }
+        }
+
+        private List<List<IEdge<Coordinate>>> GetRootPaths(List<Tuple<List<IEdge<Coordinate>>, double>> allPaths, Coordinate root)
+        {
+            var rootPaths = new List<List<IEdge<Coordinate>>>();
+
+            //已经遍历过的节点
+            var visitedVertexs = new List<Coordinate>();
+
+            foreach (var itemPath in allPaths)
+            {
+                if (itemPath.Item1.Any(e => visitedVertexs.Any(vx => vx.Equals(e.Source) || visitedVertexs.Any(v => v.Equals(e.Target))))) continue;
+
+                var itemPathVertexs = GetPathVertexs(itemPath);
+                itemPathVertexs.Remove(root);
+                visitedVertexs.AddRange(itemPathVertexs);
+
+                rootPaths.Add(itemPath.Item1);
+            }
+            return rootPaths;
+        }
+
+        private List<Coordinate> GetPathVertexs(Tuple<List<IEdge<Coordinate>>, double> longestPath)
+        {
+            var longestPathVertexs = new List<Coordinate>();
+
+            foreach (var edge in longestPath.Item1)
+            {
+                var sourceVertex = edge.Source;
+                if (sourceVertex != null && !longestPathVertexs.Any(v => v.Equals(sourceVertex))) longestPathVertexs.Add(sourceVertex);
+                var targetVertex = edge.Target;
+                if (targetVertex != null && !longestPathVertexs.Any(v => v.Equals(targetVertex))) longestPathVertexs.Add(targetVertex);
+            }
+            return longestPathVertexs;
+        }
+
+        /// <summary>
+        /// 管网主管支管
+        /// </summary>
+        [CommandMethod("NetworkMainAndBranch")]
+        public void CmdShowNetworkMainAndBranch()
+        {
+            var doc = Acap.DocumentManager.MdiActiveDocument;
+            var ed = doc.Editor;
+
+            var values = new[] { new TypedValue((int)DxfCode.Start, "*LINE") };
+            var filter = new SelectionFilter(values);
+
+            var selOptions = new PromptSelectionOptions();
+            selOptions.MessageForAdding = "选择管网:";
+            selOptions.AllowDuplicates = false;
+            selOptions.SingleOnly = false;
+            var acSSPrompt = ed.GetSelection(selOptions, filter);
+
+            if (acSSPrompt.Status != PromptStatus.OK)
+            {
+                Acap.ShowAlertDialog("Number of objects selected: 0");
+                return;
+            }
+
+            var acSSet = acSSPrompt.Value;
+            var ids = acSSet.GetObjectIds();
+
+            var dwgReader = new DwgReader();
+            var writer = new DwgWriter();
+
+            var geometrys = dwgReader.ReadGeometryCollection(ids);
+            var lineStrings = geometrys.Where(g => g != null && g is LineString).Cast<LineString>().ToList();
+
+            var graphBuilder = new GraphBuilder2(true);
+            graphBuilder.Add(lineStrings.ToArray());
+            graphBuilder.Initialize();
+
+            var graph = graphBuilder.graph;
+            var vertexs = graph.Vertices;
+            var edges = graph.Edges;
+            var undirectedGraph = BuildGraph(vertexs.ToList().ToArray(), edges.ToArray());
+
+            //交互 选择线集合，起点、终点
+            var p1O = new PromptPointOptions("\n选择路径起点:");
+            PromptPointResult p1;
+            while (true)
+            {
+                p1 = ed.GetPoint(p1O);
+                if (p1.Status == PromptStatus.Cancel) break;
+                if (p1.Status != PromptStatus.OK) break;
+                else
+                {
+                    var startPt = p1.Value;
+
+                    var allPaths = new List<Tuple<List<IEdge<Coordinate>>, double>>();
+                    var root = dwgReader.ReadCoordinate(startPt);
+                    foreach (var target in graph.Vertices)
+                    {
+                        if (root.Equals(target)) continue;
+                        var tryGetPath = graph.ShortestPathsDijkstra(e => e.Source.Distance(e.Target), root);
+                        if (tryGetPath(target, out var itemPath))
+                        {
+                            allPaths.Add(new Tuple<List<IEdge<Coordinate>>, double>(itemPath.ToList(), itemPath.Sum(e => e.Source.Distance(e.Target))));
+                        }
+                    }
+
+                    var db = HostApplicationServices.WorkingDatabase;
+                    using (var tr = db.TransactionManager.StartTransaction())
+                    {
+                        var bt = tr.GetObject(db.BlockTableId, OpenMode.ForRead) as BlockTable;
+                        var btr = tr.GetObject(db.CurrentSpaceId, OpenMode.ForWrite) as BlockTableRecord;
+
+                        allPaths = allPaths.OrderByDescending(t => t.Item2).ToList();
+
+                        var rootPaths = GetRootPaths(allPaths, root);
+
+                        int colorIndex = 2;
+                        foreach (var itemPath in rootPaths)
+                        {
+                            var lineString = graphBuilder.BuildString(itemPath);
+
+                            //输出最长主路径 黄色
+                            Entity longestPolyline = writer.WritePolyline(lineString);
+                            longestPolyline.ColorIndex = colorIndex;
+                            btr.AppendEntity(longestPolyline);
+                            tr.AddNewlyCreatedDBObject(longestPolyline, true);
+
+                            colorIndex++;
+                        }
+
+                        tr.Commit();
+                        tr.Dispose();
+                    }
+                    return;
                 }
             }
         }
