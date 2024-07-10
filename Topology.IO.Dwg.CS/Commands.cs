@@ -185,14 +185,23 @@ namespace Topology.IO.Dwg.CS
             }
         }
 
-        private List<List<IEdge<Coordinate>>> GetRootPaths(List<Tuple<List<IEdge<Coordinate>>, double>> allPaths, Coordinate root)
+        /// <summary>
+        /// 获取从指定点开始的所有主路径及支路径
+        /// </summary>
+        /// <param name="allRootPaths">从根节点出发的路径</param>
+        /// <param name="root">根节点</param>
+        /// <returns></returns>
+        private List<Tuple<List<IEdge<Coordinate>>, int>> GetAllMainAndBranchPathsFromRoot(AdjacencyGraph<Coordinate, IEdge<Coordinate>> graph, List<Tuple<List<IEdge<Coordinate>>, double>> allRootPaths, Coordinate root)
         {
-            var rootPaths = new List<List<IEdge<Coordinate>>>();
+            var mainAndBranchPaths = new List<Tuple<List<IEdge<Coordinate>>, int>>();
 
+            //图中所有的节点
+            var allVertexs = graph.Vertices.ToList();
             //已经遍历过的节点
             var visitedVertexs = new List<Coordinate>();
 
-            foreach (var itemPath in allPaths)
+            int colorIndex = 0;
+            foreach (var itemPath in allRootPaths)
             {
                 if (itemPath.Item1.Any(e => visitedVertexs.Any(vx => vx.Equals(e.Source) || visitedVertexs.Any(v => v.Equals(e.Target))))) continue;
 
@@ -200,9 +209,15 @@ namespace Topology.IO.Dwg.CS
                 itemPathVertexs.Remove(root);
                 visitedVertexs.AddRange(itemPathVertexs);
 
-                rootPaths.Add(itemPath.Item1);
+                mainAndBranchPaths.Add(new Tuple<List<IEdge<Coordinate>>, int>(itemPath.Item1, colorIndex));
             }
-            return rootPaths;
+            // <image url="$(ProjectDir)\DocumentImages\HierarchicalPath.png"/>
+            //TODO 递归处理分支,每一级分支用不同的颜色表示
+            while (allVertexs.Except(visitedVertexs).Any())
+            {
+                break;
+            }
+            return mainAndBranchPaths;
         }
 
         private List<Coordinate> GetPathVertexs(Tuple<List<IEdge<Coordinate>>, double> longestPath)
@@ -222,8 +237,8 @@ namespace Topology.IO.Dwg.CS
         /// <summary>
         /// 管网主管支管
         /// </summary>
-        [CommandMethod("NetworkMainAndBranch")]
-        public void CmdShowNetworkMainAndBranch()
+        [CommandMethod("CmdMainAndBranch")]
+        public void CmdMainAndBranch()
         {
             var doc = Acap.DocumentManager.MdiActiveDocument;
             var ed = doc.Editor;
@@ -231,10 +246,12 @@ namespace Topology.IO.Dwg.CS
             var values = new[] { new TypedValue((int)DxfCode.Start, "*LINE") };
             var filter = new SelectionFilter(values);
 
-            var selOptions = new PromptSelectionOptions();
-            selOptions.MessageForAdding = "选择管网:";
-            selOptions.AllowDuplicates = false;
-            selOptions.SingleOnly = false;
+            var selOptions = new PromptSelectionOptions
+            {
+                MessageForAdding = "选择管网:",
+                AllowDuplicates = false,
+                SingleOnly = false
+            };
             var acSSPrompt = ed.GetSelection(selOptions, filter);
 
             if (acSSPrompt.Status != PromptStatus.OK)
@@ -262,28 +279,19 @@ namespace Topology.IO.Dwg.CS
             var undirectedGraph = BuildGraph(vertexs.ToList().ToArray(), edges.ToArray());
 
             //交互 选择线集合，起点、终点
-            var p1O = new PromptPointOptions("\n选择路径起点:");
-            PromptPointResult p1;
+            var pointPrompt = new PromptPointOptions("\n选择路径起点:");
+            PromptPointResult pointPromptResult;
             while (true)
             {
-                p1 = ed.GetPoint(p1O);
-                if (p1.Status == PromptStatus.Cancel) break;
-                if (p1.Status != PromptStatus.OK) break;
+                pointPromptResult = ed.GetPoint(pointPrompt);
+                if (pointPromptResult.Status == PromptStatus.Cancel) break;
+                if (pointPromptResult.Status != PromptStatus.OK) break;
                 else
                 {
-                    var startPt = p1.Value;
+                    var startPt = pointPromptResult.Value;
 
-                    var allPaths = new List<Tuple<List<IEdge<Coordinate>>, double>>();
                     var root = dwgReader.ReadCoordinate(startPt);
-                    foreach (var target in graph.Vertices)
-                    {
-                        if (root.Equals(target)) continue;
-                        var tryGetPath = graph.ShortestPathsDijkstra(e => e.Source.Distance(e.Target), root);
-                        if (tryGetPath(target, out var itemPath))
-                        {
-                            allPaths.Add(new Tuple<List<IEdge<Coordinate>>, double>(itemPath.ToList(), itemPath.Sum(e => e.Source.Distance(e.Target))));
-                        }
-                    }
+                    var allRootPaths = GetAllPathFromRoot(graph, root);
 
                     var db = HostApplicationServices.WorkingDatabase;
                     using (var tr = db.TransactionManager.StartTransaction())
@@ -291,13 +299,14 @@ namespace Topology.IO.Dwg.CS
                         var bt = tr.GetObject(db.BlockTableId, OpenMode.ForRead) as BlockTable;
                         var btr = tr.GetObject(db.CurrentSpaceId, OpenMode.ForWrite) as BlockTableRecord;
 
-                        allPaths = allPaths.OrderByDescending(t => t.Item2).ToList();
+                        allRootPaths = allRootPaths.OrderByDescending(t => t.Item2).ToList();
 
-                        var rootPaths = GetRootPaths(allPaths, root);
+                        var rootPaths = GetAllMainAndBranchPathsFromRoot(graph, allRootPaths, root);
 
-                        int colorIndex = 2;
-                        foreach (var itemPath in rootPaths)
+                        foreach (var itemPathTuple in rootPaths)
                         {
+                            var itemPath = itemPathTuple.Item1;
+                            int colorIndex = itemPathTuple.Item2;
                             var lineString = graphBuilder.BuildString(itemPath);
 
                             //输出最长主路径 黄色
@@ -305,8 +314,6 @@ namespace Topology.IO.Dwg.CS
                             longestPolyline.ColorIndex = colorIndex;
                             btr.AppendEntity(longestPolyline);
                             tr.AddNewlyCreatedDBObject(longestPolyline, true);
-
-                            colorIndex++;
                         }
 
                         tr.Commit();
@@ -315,6 +322,22 @@ namespace Topology.IO.Dwg.CS
                     return;
                 }
             }
+        }
+
+        private List<Tuple<List<IEdge<Coordinate>>, double>> GetAllPathFromRoot(AdjacencyGraph<Coordinate, IEdge<Coordinate>> graph, Coordinate root)
+        {
+            var allPaths = new List<Tuple<List<IEdge<Coordinate>>, double>>();
+
+            foreach (var target in graph.Vertices)
+            {
+                if (root.Equals(target)) continue;
+                var tryGetPath = graph.ShortestPathsDijkstra(e => e.Source.Distance(e.Target), root);
+                if (tryGetPath(target, out var itemPath))
+                {
+                    allPaths.Add(new Tuple<List<IEdge<Coordinate>>, double>(itemPath.ToList(), itemPath.Sum(e => e.Source.Distance(e.Target))));
+                }
+            }
+            return allPaths;
         }
 
         //IEdge<Coordinate>

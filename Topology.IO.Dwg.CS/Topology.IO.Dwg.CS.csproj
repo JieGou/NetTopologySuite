@@ -79,5 +79,8 @@
       <Version>3.6.61119.7</Version>
     </PackageReference>
   </ItemGroup>
+  <ItemGroup>
+    <None Include="DocumentImages\HierarchicalPath.png" />
+  </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
 </Project>
