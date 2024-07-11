@@ -22,6 +22,7 @@ using System.Collections.Generic;
 using QuickGraph;
 using QuickGraph.Algorithms;
 using System;
+using QuickGraph.Algorithms.ConnectedComponents;
 
 namespace Topology.IO.Dwg.CS
 {
@@ -191,65 +192,127 @@ namespace Topology.IO.Dwg.CS
         /// <param name="allRootPaths">从根节点出发的路径</param>
         /// <param name="root">根节点</param>
         /// <returns></returns>
-        private List<Tuple<List<UndirectedEdge<Coordinate>>, int>> GetAllMainAndBranchPathsFromRoot(UndirectedGraph<Coordinate, UndirectedEdge<Coordinate>> graph, List<Tuple<List<UndirectedEdge<Coordinate>>, double>> allRootPaths, Coordinate root)
+        private List<Tuple<List<UndirectedEdge<Coordinate>>, int>> GetAllMainAndBranchPathsFromRoot(UndirectedGraph<Coordinate, UndirectedEdge<Coordinate>> parentGraph,
+                                                                                                    List<Tuple<List<UndirectedEdge<Coordinate>>, double>> allRootPaths, Coordinate root)
         {
+            //主/分路径 Tuple Item1表示边 Item2表示层次等级
             var mainAndBranchPaths = new List<Tuple<List<UndirectedEdge<Coordinate>>, int>>();
 
-            //图中所有的节点
-            var allVertexs = graph.Vertices.ToList();
             //已经遍历过的节点
             var visitedVertexs = new List<Coordinate>();
 
             var allExcludedEdges = new List<UndirectedEdge<Coordinate>>();//需要排除的边
-            //节点等级词典
-            var colorIndexColorDic = new Dictionary<int, List<Coordinate>>();
-            int colorIndex = 0;
-            colorIndexColorDic[colorIndex] = new List<Coordinate>();
+
+            //等级边词典
+            var hierarchyLevelEdgeDic = new Dictionary<int, List<UndirectedEdge<Coordinate>>>();
+            int hierarchyLevelIndex = 0;
+            hierarchyLevelEdgeDic[hierarchyLevelIndex] = new List<UndirectedEdge<Coordinate>>();
             foreach (var itemPath in allRootPaths)
             {
-                if (itemPath.Item1.Any(e => visitedVertexs.Any(vx => vx.Equals(e.Source) || visitedVertexs.Any(v => v.Equals(e.Target))))) continue;
-                allExcludedEdges.AddRange(itemPath.Item1);
+                //当前路径的边集合
+                var itemEdgeList = itemPath.Item1;
+                //当前边集合中的起点或终点被记录了跳过——因为最长排序在前，所以这里加入的条数为根节点的邻接点个数，其它都跳过
+                if (itemEdgeList.Any(e => visitedVertexs.Any(vx => vx.Equals(e.Source) || visitedVertexs.Any(v => v.Equals(e.Target))))) continue;
+                allExcludedEdges.AddRange(itemEdgeList);
+                hierarchyLevelEdgeDic[hierarchyLevelIndex].AddRange(itemEdgeList);
 
-                var itemPathVertexs = GetPathVertexs(itemPath);
-                colorIndexColorDic[colorIndex].AddRange(itemPathVertexs);
+                var itemPathVertex = GetPathVertexs(itemEdgeList);
+                visitedVertexs.AddRange(itemPathVertex);
+                if (parentGraph.AdjacentEdges(root).ToList().Count / 2 > 1)
+                    visitedVertexs.Remove(root);//为使图能够正常遍历从根节点出发的其它方向，清除根节点
 
-                itemPathVertexs.Remove(root);
-                visitedVertexs.AddRange(itemPathVertexs);
-
-                mainAndBranchPaths.Add(new Tuple<List<UndirectedEdge<Coordinate>>, int>(itemPath.Item1, colorIndex));
+                mainAndBranchPaths.Add(new Tuple<List<UndirectedEdge<Coordinate>>, int>(itemEdgeList, hierarchyLevelIndex));
             }
             // <image url="$(ProjectDir)\DocumentImages\HierarchicalPath.png"/>
-            //TODO 递归处理分支,每一级分支用不同的颜色表示
-            while (allVertexs.Except(visitedVertexs).Any())
+
+            while (parentGraph.Edges.ToList().Count > 0)
             {
-                foreach (var vkp in colorIndexColorDic)
+                for (int i = 0; i < mainAndBranchPaths.Count; i++)
                 {
-                    foreach (var itemVertex in vkp.Value)
+                    //主路径找到后，删除第一路径
+                    EdgePredicate<Coordinate, UndirectedEdge<Coordinate>> isLoop = e =>
+                    mainAndBranchPaths[i].Item1.Any(itemEdge => (e.Source.Equals2D(itemEdge.Source) && e.Target.Equals2D(itemEdge.Target)) ||
+                                                                (e.Source.Equals2D(itemEdge.Target) && e.Target.Equals2D(itemEdge.Source)));
+                    parentGraph.RemoveEdgeIf(isLoop);
+                }
+                if (parentGraph.Edges.ToList().Count == 0) break;
+
+                //检查图的 Component个数
+                var dfs = new ConnectedComponentsAlgorithm<Coordinate, UndirectedEdge<Coordinate>>(parentGraph);
+                dfs.Compute();
+
+                //子级图
+                var subUndirectedGraphList = new List<UndirectedGraph<Coordinate, UndirectedEdge<Coordinate>>>();
+                if (dfs.ComponentCount >= 1)
+                {
+                    hierarchyLevelIndex++;
+
+                    // 分别得到各Component的图
+                    var subGraphs = parentGraph.GetSubComponentGraphs(dfs);
+
+                    foreach (var itemUndirectedGraph in subGraphs)
                     {
-                        var itemOutEdges = graph.AdjacentEdges(itemVertex).ToList();
+                        var subGraph = (UndirectedGraph<Coordinate, UndirectedEdge<Coordinate>>)itemUndirectedGraph;
+                        if (subGraph == null || subGraph.EdgeCount < 1) continue;
+                        subUndirectedGraphList.Add(subGraph);
+                    }
+                    subUndirectedGraphList = subUndirectedGraphList.OrderByDescending(x => x.EdgeCount).ToList();
 
-                        //该节点需要排除的边
-                        var itemExcludeEdges = new List<IEdge<Coordinate>>();
-                        foreach (var edge in itemOutEdges)
+                    //获取子级图的入口点
+                    hierarchyLevelEdgeDic[hierarchyLevelIndex] = new List<UndirectedEdge<Coordinate>>();
+                    foreach (var itemSubGraph in subUndirectedGraphList)
+                    {
+                        var subGrapRoot = GetGraphRoot(itemSubGraph, hierarchyLevelEdgeDic[hierarchyLevelIndex - 1]);
+                        if (subGrapRoot == null) continue;
+                        var allItemSubRootPaths = GetAllPathFromRoot(itemSubGraph, subGrapRoot);
+                        //if (itemSubGraph.AdjacentEdges(subGrapRoot).ToList().Count / 2 > 1)
+                        visitedVertexs.Remove(subGrapRoot);//为使子图能够正常遍历，先清除子图根节点
+
+                        //对次一级子图进行主路径和支路径的输出
+                        foreach (var itemPath in allItemSubRootPaths)
                         {
-                            if (allExcludedEdges.Contains(edge)) itemExcludeEdges.Add(edge);
-                        }
-                        //如果该节点所有的边都被排除，不创建子图
-                        if (itemOutEdges.Count == itemExcludeEdges.Count) continue;
+                            //当前路径的边集合
+                            var itemEdgeList = itemPath.Item1;
+                            //当前边集合中的起点或终点被记录了的跳过——因为最长排序在前，所以这里加入的条数为根节点的邻接点个数，其它都跳过
+                            if (itemEdgeList.Any(e => visitedVertexs.Any(vx => vx.Equals(e.Source) || visitedVertexs.Any(v => v.Equals(e.Target))))) continue;
+                            allExcludedEdges.AddRange(itemEdgeList);
+                            hierarchyLevelEdgeDic[hierarchyLevelIndex].AddRange(itemEdgeList);
 
-                        var subgraph = GetSubgraph(graph, itemVertex, itemExcludeEdges);
+                            var itemPathVertex = GetPathVertexs(itemEdgeList);
+                            visitedVertexs.AddRange(itemPathVertex);
+                            //if (itemSubGraph.AdjacentEdges(subGrapRoot).ToList().Count / 2 > 1)
+                            visitedVertexs.Remove(subGrapRoot);//为使子图能够遍历经过子图根节点的其它方向，再清除一遍子图根节点
+
+                            mainAndBranchPaths.Add(new Tuple<List<UndirectedEdge<Coordinate>>, int>(itemEdgeList, hierarchyLevelIndex));
+                        }
                     }
                 }
-                break;
             }
             return mainAndBranchPaths;
         }
 
-        private List<Coordinate> GetPathVertexs(Tuple<List<UndirectedEdge<Coordinate>>, double> longestPath)
+        /// <summary>
+        /// 获取子图的根节点
+        /// </summary>
+        /// <param name="itemSubGraph"></param>
+        /// <param name="upEdges">上一级的边集合</param>
+        /// <returns></returns>
+        private Coordinate GetGraphRoot(UndirectedGraph<Coordinate, UndirectedEdge<Coordinate>> itemSubGraph, List<UndirectedEdge<Coordinate>> upEdges)
+        {
+            var upVertexs = GetPathVertexs(upEdges);
+            return upVertexs.FirstOrDefault(v => itemSubGraph.Vertices.Any(vx => vx.Equals2D(v)));
+        }
+
+        /// <summary>
+        /// 获取边集合的点
+        /// </summary>
+        /// <param name="edgeList">边集合</param>
+        /// <returns>点列表</returns>
+        private List<Coordinate> GetPathVertexs(List<UndirectedEdge<Coordinate>> edgeList)
         {
             var longestPathVertexs = new List<Coordinate>();
 
-            foreach (var edge in longestPath.Item1)
+            foreach (var edge in edgeList)
             {
                 var sourceVertex = edge.Source;
                 if (sourceVertex != null && !longestPathVertexs.Any(v => v.Equals(sourceVertex))) longestPathVertexs.Add(sourceVertex);
@@ -303,52 +366,96 @@ namespace Topology.IO.Dwg.CS
             var edges = graph.Edges;
             var undirectedGraph = BuildGraph(vertexs.ToList().ToArray(), edges.ToArray());
 
-            //交互 选择线集合，起点、终点
-            var pointPrompt = new PromptPointOptions("\n选择路径起点:");
-            PromptPointResult pointPromptResult;
-            while (true)
+            //TODO 支持多个管网
+            //检查图的 Component个数
+            var dfs = new ConnectedComponentsAlgorithm<Coordinate, UndirectedEdge<Coordinate>>(undirectedGraph);
+            dfs.Compute();
+
+            var undirectedGraphList = new List<UndirectedGraph<Coordinate, UndirectedEdge<Coordinate>>>();
+            if (dfs.ComponentCount <= 1)
             {
-                pointPromptResult = ed.GetPoint(pointPrompt);
-                if (pointPromptResult.Status == PromptStatus.Cancel) break;
-                if (pointPromptResult.Status != PromptStatus.OK) break;
-                else
+                undirectedGraphList.Add(undirectedGraph);
+            }
+            else
+            {
+                // 分别得到各Component的图
+                var subGraphs = undirectedGraph.GetSubComponentGraphs(dfs);
+
+                foreach (var itemUndirectedGraph in subGraphs)
                 {
-                    var startPt = pointPromptResult.Value;
+                    var subGraph = (UndirectedGraph<Coordinate, UndirectedEdge<Coordinate>>)itemUndirectedGraph;
+                    if (subGraph == null || subGraph.EdgeCount < 1) continue;
+                    undirectedGraphList.Add(subGraph);
+                }
+            }
 
-                    var root = dwgReader.ReadCoordinate(startPt);
-                    var allRootPaths = GetAllPathFromRoot(undirectedGraph, root);
-
-                    var db = HostApplicationServices.WorkingDatabase;
-                    using (var tr = db.TransactionManager.StartTransaction())
+            int componentGraphCount = undirectedGraphList.Count;
+            //改造为for循环，用户可以任意选则其中一个网管所包含的点
+            for (int i = 0; i < componentGraphCount; i++)
+            {
+                var itemUndirectedGraph = undirectedGraphList[i];
+                //交互 选择线集合，起点、终点
+                var pointPrompt = new PromptPointOptions("\n选择路径起点:");
+                PromptPointResult pointPromptResult;
+                while (true)
+                {
+                    pointPromptResult = ed.GetPoint(pointPrompt);
+                    if (pointPromptResult.Status == PromptStatus.Cancel) break;
+                    if (pointPromptResult.Status != PromptStatus.OK) break;
+                    else
                     {
-                        var bt = tr.GetObject(db.BlockTableId, OpenMode.ForRead) as BlockTable;
-                        var btr = tr.GetObject(db.CurrentSpaceId, OpenMode.ForWrite) as BlockTableRecord;
-
-                        allRootPaths = allRootPaths.OrderByDescending(t => t.Item2).ToList();
-
-                        var rootPaths = GetAllMainAndBranchPathsFromRoot(undirectedGraph, allRootPaths, root);
-
-                        foreach (var itemPathTuple in rootPaths)
+                        var startPt = pointPromptResult.Value;
+                        var root = dwgReader.ReadCoordinate(startPt);
+                        //TODO 不在管网上的 提示重新选择点
+                        if (itemUndirectedGraph.Vertices.All(pt => !pt.Equals2D(root)))
                         {
-                            var itemPath = itemPathTuple.Item1;
-                            int colorIndex = itemPathTuple.Item2;
-                            var lineString = graphBuilder.BuildString(itemPath);
-
-                            //输出最长主路径 黄色
-                            Entity longestPolyline = writer.WritePolyline(lineString);
-                            longestPolyline.ColorIndex = colorIndex;
-                            btr.AppendEntity(longestPolyline);
-                            tr.AddNewlyCreatedDBObject(longestPolyline, true);
+                            ed.WriteMessage("\n点不在网管上，请重新选择");
+                            continue;
                         }
+                        var allRootPaths = GetAllPathFromRoot(itemUndirectedGraph, root);
 
-                        tr.Commit();
-                        tr.Dispose();
+                        var db = HostApplicationServices.WorkingDatabase;
+                        using (var tr = db.TransactionManager.StartTransaction())
+                        {
+                            var bt = tr.GetObject(db.BlockTableId, OpenMode.ForRead) as BlockTable;
+                            var btr = tr.GetObject(db.CurrentSpaceId, OpenMode.ForWrite) as BlockTableRecord;
+
+                            var rootPaths = GetAllMainAndBranchPathsFromRoot(itemUndirectedGraph, allRootPaths, root);
+                            int widthBase = 0;
+                            int levelCount = rootPaths.Max(p => p.Item2);
+                            foreach (var itemPathTuple in rootPaths)
+                            {
+                                var itemPath = itemPathTuple.Item1;
+                                int hierarchicalLevel = itemPathTuple.Item2;
+
+                                //颜色序号
+                                int colorIndex = hierarchicalLevel + 1;
+                                int width = widthBase * (levelCount - hierarchicalLevel + 1);
+
+                                var lineString = graphBuilder.BuildString(itemPath);
+
+                                //输出最长主路径 黄色
+                                var longestPolyline = writer.WritePolyline(lineString, width);
+                                longestPolyline.ColorIndex = colorIndex;
+                                btr.AppendEntity(longestPolyline);
+                                tr.AddNewlyCreatedDBObject(longestPolyline, true);
+                            }
+
+                            tr.Commit();
+                            tr.Dispose();
+                        }
+                        return;
                     }
-                    return;
                 }
             }
         }
 
+        /// <summary>
+        /// 获取从指定根节点出发的所有路径
+        /// </summary>
+        /// <param name="graph"></param>
+        /// <param name="root"></param>
+        /// <returns></returns>
         private List<Tuple<List<UndirectedEdge<Coordinate>>, double>> GetAllPathFromRoot(UndirectedGraph<Coordinate, UndirectedEdge<Coordinate>> graph, Coordinate root)
         {
             var allPaths = new List<Tuple<List<UndirectedEdge<Coordinate>>, double>>();
@@ -362,7 +469,7 @@ namespace Topology.IO.Dwg.CS
                     allPaths.Add(new Tuple<List<UndirectedEdge<Coordinate>>, double>(itemPath.ToList(), itemPath.Sum(e => e.Source.Distance(e.Target))));
                 }
             }
-            return allPaths;
+            return allPaths.OrderByDescending(t => t.Item2).ToList();
         }
 
         //IEdge<Coordinate>
@@ -430,6 +537,7 @@ namespace Topology.IO.Dwg.CS
                 }
             }
         }
+
         /// <summary>
         /// 从Graph中指定节点获取排除某些边之后的子图
         /// </summary>

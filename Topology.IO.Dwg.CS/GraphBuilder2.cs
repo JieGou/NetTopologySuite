@@ -5,6 +5,7 @@ using QuickGraph;
 using QuickGraph.Algorithms.ShortestPath;
 using QuickGraph.Algorithms.Observers;
 using System.IO;
+using System.Linq;
 
 namespace Topology.IO.Dwg.CS
 {
@@ -266,24 +267,20 @@ namespace Topology.IO.Dwg.CS
             return thePath;
         }
 
+        //Done 这里按合并直线的算法来做，避免简单点排序造成的问题
         public LineString BuildString(List<UndirectedEdge<Coordinate>> path)
         {
             if (path.Count < 1) return null;
 
-            // if we get here then we now that there is at least one edge in the path.
-            var links = new Coordinate[path.Count + 1];
+            var merger = new NetTopologySuite.Operation.Linemerge.LineMerger();
+            foreach (var edge in path)
+                merger.Add(new LineString(new List<Coordinate>() { edge.Source, edge.Target, }.ToArray()));
 
-            // Add each node to the list of coordinates in to the array.
-            int i;
-            for (i = 0; i < path.Count; i++)
-                links[i] = path[i].Source;
+            var paths = new List<LineString>();
+            foreach (LineString lineString in merger.GetMergedLineStrings())
+                paths.Add(lineString);
 
-            // Add the target node to the last loction in the list
-            links[i] = path[i - 1].Target;
-
-            // Turn the list of coordinates into a geometry.
-            var thePath = factory.CreateLineString(links);
-            return thePath;
+            return paths.FirstOrDefault();
         }
 
         /// <summary>

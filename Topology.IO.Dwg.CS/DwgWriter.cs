@@ -105,13 +105,13 @@ namespace Topology.IO.Dwg.CS
         /// into the <see cref="Polyline"/>'s <c>Elevation</c>.
         /// </para>
         /// </remarks>
-        public Polyline WritePolyline(LineString lineString)
+        public Polyline WritePolyline(LineString lineString, double width = 0d)
         {
             var geometry = new Polyline();
             int i = 0;
             foreach (var coordinate in lineString.Coordinates)
             {
-                geometry.AddVertexAt(i, new Point2d(coordinate.X, coordinate.Y), 0, 0, 0);
+                geometry.AddVertexAt(i, new Point2d(coordinate.X, coordinate.Y), 0, width, width);
                 i += 1;
             }
             geometry.Closed = lineString.StartPoint.EqualsExact(lineString.EndPoint);

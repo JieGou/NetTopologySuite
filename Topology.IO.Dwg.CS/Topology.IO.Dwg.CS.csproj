@@ -59,12 +59,14 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="Commands.cs" />
+    <Compile Include="CoordinateComparer_XY.cs" />
     <Compile Include="DwgReader.cs" />
     <Compile Include="DwgWriter.cs" />
     <Compile Include="GeometryReader.cs" />
     <Compile Include="GeometryReaderWriter.cs" />
     <Compile Include="GeometryWriter.cs" />
     <Compile Include="GraphBuilder2.cs" />
+    <Compile Include="GraphComponentUtils.cs" />
     <Compile Include="PathFinder.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
   </ItemGroup>
