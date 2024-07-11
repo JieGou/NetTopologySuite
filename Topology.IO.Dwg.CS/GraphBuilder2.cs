@@ -4,6 +4,7 @@ using NetTopologySuite.Geometries;
 using QuickGraph;
 using QuickGraph.Algorithms.ShortestPath;
 using QuickGraph.Algorithms.Observers;
+using System.IO;
 
 namespace Topology.IO.Dwg.CS
 {
@@ -250,6 +251,26 @@ namespace Topology.IO.Dwg.CS
 
             // if we get here then we now that there is at least one
             // edge in the path.
+            var links = new Coordinate[path.Count + 1];
+
+            // Add each node to the list of coordinates in to the array.
+            int i;
+            for (i = 0; i < path.Count; i++)
+                links[i] = path[i].Source;
+
+            // Add the target node to the last loction in the list
+            links[i] = path[i - 1].Target;
+
+            // Turn the list of coordinates into a geometry.
+            var thePath = factory.CreateLineString(links);
+            return thePath;
+        }
+
+        public LineString BuildString(List<UndirectedEdge<Coordinate>> path)
+        {
+            if (path.Count < 1) return null;
+
+            // if we get here then we now that there is at least one edge in the path.
             var links = new Coordinate[path.Count + 1];
 
             // Add each node to the list of coordinates in to the array.

@@ -191,36 +191,61 @@ namespace Topology.IO.Dwg.CS
         /// <param name="allRootPaths">从根节点出发的路径</param>
         /// <param name="root">根节点</param>
         /// <returns></returns>
-        private List<Tuple<List<IEdge<Coordinate>>, int>> GetAllMainAndBranchPathsFromRoot(AdjacencyGraph<Coordinate, IEdge<Coordinate>> graph, List<Tuple<List<IEdge<Coordinate>>, double>> allRootPaths, Coordinate root)
+        private List<Tuple<List<UndirectedEdge<Coordinate>>, int>> GetAllMainAndBranchPathsFromRoot(UndirectedGraph<Coordinate, UndirectedEdge<Coordinate>> graph, List<Tuple<List<UndirectedEdge<Coordinate>>, double>> allRootPaths, Coordinate root)
         {
-            var mainAndBranchPaths = new List<Tuple<List<IEdge<Coordinate>>, int>>();
+            var mainAndBranchPaths = new List<Tuple<List<UndirectedEdge<Coordinate>>, int>>();
 
             //图中所有的节点
             var allVertexs = graph.Vertices.ToList();
             //已经遍历过的节点
             var visitedVertexs = new List<Coordinate>();
 
+            var allExcludedEdges = new List<UndirectedEdge<Coordinate>>();//需要排除的边
+            //节点等级词典
+            var colorIndexColorDic = new Dictionary<int, List<Coordinate>>();
             int colorIndex = 0;
+            colorIndexColorDic[colorIndex] = new List<Coordinate>();
             foreach (var itemPath in allRootPaths)
             {
                 if (itemPath.Item1.Any(e => visitedVertexs.Any(vx => vx.Equals(e.Source) || visitedVertexs.Any(v => v.Equals(e.Target))))) continue;
+                allExcludedEdges.AddRange(itemPath.Item1);
 
                 var itemPathVertexs = GetPathVertexs(itemPath);
+                colorIndexColorDic[colorIndex].AddRange(itemPathVertexs);
+
                 itemPathVertexs.Remove(root);
                 visitedVertexs.AddRange(itemPathVertexs);
 
-                mainAndBranchPaths.Add(new Tuple<List<IEdge<Coordinate>>, int>(itemPath.Item1, colorIndex));
+                mainAndBranchPaths.Add(new Tuple<List<UndirectedEdge<Coordinate>>, int>(itemPath.Item1, colorIndex));
             }
             // <image url="$(ProjectDir)\DocumentImages\HierarchicalPath.png"/>
             //TODO 递归处理分支,每一级分支用不同的颜色表示
             while (allVertexs.Except(visitedVertexs).Any())
             {
+                foreach (var vkp in colorIndexColorDic)
+                {
+                    foreach (var itemVertex in vkp.Value)
+                    {
+                        var itemOutEdges = graph.AdjacentEdges(itemVertex).ToList();
+
+                        //该节点需要排除的边
+                        var itemExcludeEdges = new List<IEdge<Coordinate>>();
+                        foreach (var edge in itemOutEdges)
+                        {
+                            if (allExcludedEdges.Contains(edge)) itemExcludeEdges.Add(edge);
+                        }
+                        //如果该节点所有的边都被排除，不创建子图
+                        if (itemOutEdges.Count == itemExcludeEdges.Count) continue;
+
+                        var subgraph = GetSubgraph(graph, itemVertex, itemExcludeEdges);
+                    }
+                }
                 break;
             }
             return mainAndBranchPaths;
         }
 
-        private List<Coordinate> GetPathVertexs(Tuple<List<IEdge<Coordinate>>, double> longestPath)
+        private List<Coordinate> GetPathVertexs(Tuple<List<UndirectedEdge<Coordinate>>, double> longestPath)
         {
             var longestPathVertexs = new List<Coordinate>();
 
@@ -291,7 +316,7 @@ namespace Topology.IO.Dwg.CS
                     var startPt = pointPromptResult.Value;
 
                     var root = dwgReader.ReadCoordinate(startPt);
-                    var allRootPaths = GetAllPathFromRoot(graph, root);
+                    var allRootPaths = GetAllPathFromRoot(undirectedGraph, root);
 
                     var db = HostApplicationServices.WorkingDatabase;
                     using (var tr = db.TransactionManager.StartTransaction())
@@ -301,7 +326,7 @@ namespace Topology.IO.Dwg.CS
 
                         allRootPaths = allRootPaths.OrderByDescending(t => t.Item2).ToList();
 
-                        var rootPaths = GetAllMainAndBranchPathsFromRoot(graph, allRootPaths, root);
+                        var rootPaths = GetAllMainAndBranchPathsFromRoot(undirectedGraph, allRootPaths, root);
 
                         foreach (var itemPathTuple in rootPaths)
                         {
@@ -324,9 +349,9 @@ namespace Topology.IO.Dwg.CS
             }
         }
 
-        private List<Tuple<List<IEdge<Coordinate>>, double>> GetAllPathFromRoot(AdjacencyGraph<Coordinate, IEdge<Coordinate>> graph, Coordinate root)
+        private List<Tuple<List<UndirectedEdge<Coordinate>>, double>> GetAllPathFromRoot(UndirectedGraph<Coordinate, UndirectedEdge<Coordinate>> graph, Coordinate root)
         {
-            var allPaths = new List<Tuple<List<IEdge<Coordinate>>, double>>();
+            var allPaths = new List<Tuple<List<UndirectedEdge<Coordinate>>, double>>();
 
             foreach (var target in graph.Vertices)
             {
@@ -334,7 +359,7 @@ namespace Topology.IO.Dwg.CS
                 var tryGetPath = graph.ShortestPathsDijkstra(e => e.Source.Distance(e.Target), root);
                 if (tryGetPath(target, out var itemPath))
                 {
-                    allPaths.Add(new Tuple<List<IEdge<Coordinate>>, double>(itemPath.ToList(), itemPath.Sum(e => e.Source.Distance(e.Target))));
+                    allPaths.Add(new Tuple<List<UndirectedEdge<Coordinate>>, double>(itemPath.ToList(), itemPath.Sum(e => e.Source.Distance(e.Target))));
                 }
             }
             return allPaths;
@@ -404,6 +429,48 @@ namespace Topology.IO.Dwg.CS
                     tr.Dispose();
                 }
             }
+        }
+        /// <summary>
+        /// 从Graph中指定节点获取排除某些边之后的子图
+        /// </summary>
+        /// <param name="graph">源图</param>
+        /// <param name="startNode">指定起始节点</param>
+        /// <param name="excludedEdges">该节点需要排除的边</param>
+        /// <returns></returns>
+
+        public UndirectedGraph<Coordinate, UndirectedEdge<Coordinate>> GetSubgraph(UndirectedGraph<Coordinate, UndirectedEdge<Coordinate>> graph,
+                                                                         Coordinate startNode,
+                                                                         List<IEdge<Coordinate>> excludedEdges)
+        {
+            var visited = new Dictionary<Coordinate, bool>();
+            var subgraph = new UndirectedGraph<Coordinate, UndirectedEdge<Coordinate>>();
+            var queue = new Queue<Coordinate>();
+
+            queue.Enqueue(startNode);
+            visited[startNode] = true;
+
+            while (queue.Count > 0)
+            {
+                var node = queue.Dequeue();
+
+                // Iterate through all adjacent vertices
+                foreach (var adjacentEdge in graph.AdjacentEdges(node))
+                {
+                    if (excludedEdges.Contains(adjacentEdge) || visited[adjacentEdge.Source] && visited[adjacentEdge.Target])
+                    {
+                        continue;
+                    }
+
+                    visited[adjacentEdge.Target] = true;
+                    visited[adjacentEdge.Source] = true;
+
+                    if (!node.Equals(adjacentEdge.Target)) queue.Enqueue(adjacentEdge.Target);
+                    if (!node.Equals(adjacentEdge.Source)) queue.Enqueue(adjacentEdge.Source);
+
+                    subgraph.AddEdge(adjacentEdge);
+                }
+            }
+            return subgraph;
         }
     }
 }
