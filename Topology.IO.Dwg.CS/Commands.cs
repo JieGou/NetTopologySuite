@@ -189,17 +189,19 @@ namespace Topology.IO.Dwg.CS
         /// <summary>
         /// 获取从指定点开始的所有主路径及支路径
         /// </summary>
-        /// <param name="allRootPaths">从根节点出发的路径</param>
+        /// <param name="parentGraph">父图</param>
         /// <param name="root">根节点</param>
         /// <returns></returns>
-        private List<Tuple<List<UndirectedEdge<Coordinate>>, int>> GetAllMainAndBranchPathsFromRoot(UndirectedGraph<Coordinate, UndirectedEdge<Coordinate>> parentGraph,
-                                                                                                    List<Tuple<List<UndirectedEdge<Coordinate>>, double>> allRootPaths, Coordinate root)
+        private List<Tuple<List<UndirectedEdge<Coordinate>>, int>> GetAllMainAndBranchPathsFromRoot(UndirectedGraph<Coordinate, UndirectedEdge<Coordinate>> parentGraph, Coordinate root)
         {
-            //主/分路径 Tuple Item1表示边 Item2表示层次等级
+            //从根节点出发的路径
+            var allRootPaths = GetAllPathFromRoot(parentGraph, root);
+
+            //主/分路径 Tuple Item1表示路径边集合 Item2表示层次等级
             var mainAndBranchPaths = new List<Tuple<List<UndirectedEdge<Coordinate>>, int>>();
 
-            //已经遍历过的节点
-            var visitedVertexs = new List<Coordinate>();
+            //已经遍历过的节点 不允许重复
+            var visitedVertexs = new HashSet<Coordinate>();
 
             var allExcludedEdges = new List<UndirectedEdge<Coordinate>>();//需要排除的边
 
@@ -211,15 +213,18 @@ namespace Topology.IO.Dwg.CS
             {
                 //当前路径的边集合
                 var itemEdgeList = itemPath.Item1;
-                //当前边集合中的起点或终点被记录了跳过——因为最长排序在前，所以这里加入的条数为根节点的邻接点个数，其它都跳过
-                if (itemEdgeList.Any(e => visitedVertexs.Any(vx => vx.Equals(e.Source) || visitedVertexs.Any(v => v.Equals(e.Target))))) continue;
+                //当前边集合中的起点或终点被记录了跳过——因为最长排序在前，所以这里能加入的路径条数为根节点的邻接点个数，其它都跳过
+                if (itemEdgeList.Any(e =>
+                {
+                    var sourcePt = e.Source;
+                    var targetPt = e.Target;
+                    return visitedVertexs.Any(vx => !vx.Equals2D(root) && (vx.Equals2D(sourcePt) || vx.Equals2D(targetPt)));
+                })) continue;
                 allExcludedEdges.AddRange(itemEdgeList);
                 hierarchyLevelEdgeDic[hierarchyLevelIndex].AddRange(itemEdgeList);
 
                 var itemPathVertex = GetPathVertexs(itemEdgeList);
-                visitedVertexs.AddRange(itemPathVertex);
-                if (parentGraph.AdjacentEdges(root).ToList().Count / 2 > 1)
-                    visitedVertexs.Remove(root);//为使图能够正常遍历从根节点出发的其它方向，清除根节点
+                itemPathVertex.ForEach(itemV => visitedVertexs.Add(itemV));
 
                 mainAndBranchPaths.Add(new Tuple<List<UndirectedEdge<Coordinate>>, int>(itemEdgeList, hierarchyLevelIndex));
             }
@@ -265,8 +270,6 @@ namespace Topology.IO.Dwg.CS
                         var subGrapRoot = GetGraphRoot(itemSubGraph, hierarchyLevelEdgeDic[hierarchyLevelIndex - 1]);
                         if (subGrapRoot == null) continue;
                         var allItemSubRootPaths = GetAllPathFromRoot(itemSubGraph, subGrapRoot);
-                        //if (itemSubGraph.AdjacentEdges(subGrapRoot).ToList().Count / 2 > 1)
-                        visitedVertexs.Remove(subGrapRoot);//为使子图能够正常遍历，先清除子图根节点
 
                         //对次一级子图进行主路径和支路径的输出
                         foreach (var itemPath in allItemSubRootPaths)
@@ -274,14 +277,17 @@ namespace Topology.IO.Dwg.CS
                             //当前路径的边集合
                             var itemEdgeList = itemPath.Item1;
                             //当前边集合中的起点或终点被记录了的跳过——因为最长排序在前，所以这里加入的条数为根节点的邻接点个数，其它都跳过
-                            if (itemEdgeList.Any(e => visitedVertexs.Any(vx => vx.Equals(e.Source) || visitedVertexs.Any(v => v.Equals(e.Target))))) continue;
+                            if (itemEdgeList.Any(e =>
+                            {
+                                var sourcePt = e.Source;
+                                var targetPt = e.Target;
+                                return visitedVertexs.Any(vx => !vx.Equals2D(subGrapRoot) && (vx.Equals2D(sourcePt) || vx.Equals2D(targetPt)));
+                            })) continue;
                             allExcludedEdges.AddRange(itemEdgeList);
                             hierarchyLevelEdgeDic[hierarchyLevelIndex].AddRange(itemEdgeList);
 
                             var itemPathVertex = GetPathVertexs(itemEdgeList);
-                            visitedVertexs.AddRange(itemPathVertex);
-                            //if (itemSubGraph.AdjacentEdges(subGrapRoot).ToList().Count / 2 > 1)
-                            visitedVertexs.Remove(subGrapRoot);//为使子图能够遍历经过子图根节点的其它方向，再清除一遍子图根节点
+                            itemPathVertex.ForEach(itemV => visitedVertexs.Add(itemV));
 
                             mainAndBranchPaths.Add(new Tuple<List<UndirectedEdge<Coordinate>>, int>(itemEdgeList, hierarchyLevelIndex));
                         }
@@ -412,15 +418,13 @@ namespace Topology.IO.Dwg.CS
                             ed.WriteMessage("\n点不在网管上，请重新选择");
                             continue;
                         }
-                        var allRootPaths = GetAllPathFromRoot(itemUndirectedGraph, root);
-
                         var db = HostApplicationServices.WorkingDatabase;
                         using (var tr = db.TransactionManager.StartTransaction())
                         {
                             var bt = tr.GetObject(db.BlockTableId, OpenMode.ForRead) as BlockTable;
                             var btr = tr.GetObject(db.CurrentSpaceId, OpenMode.ForWrite) as BlockTableRecord;
 
-                            var rootPaths = GetAllMainAndBranchPathsFromRoot(itemUndirectedGraph, allRootPaths, root);
+                            var rootPaths = GetAllMainAndBranchPathsFromRoot(itemUndirectedGraph, root);
                             int widthBase = 0;
                             int levelCount = rootPaths.Max(p => p.Item2);
                             foreach (var itemPathTuple in rootPaths)
