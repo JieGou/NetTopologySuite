@@ -328,6 +328,19 @@ namespace Topology.IO.Dwg.CS
             return longestPathVertexs;
         }
 
+        //TODO 喷淋标注(管径计算)
+        [CommandMethod("CmdSprayCalAndDim")]
+        public void CmdSprayCalAndDim()
+        {
+            //Reference from 超快速的喷淋计算标注程序 http://bbs.mjtd.com/thread-170300-1-1.html
+            /*
+             1、几何线构造图
+             2、构造指定根节点的有向图
+             3、对喷头作一个偏移，去除末端的，构造Edge添加到图 并作标记为虚拟边
+             4、按 Shreve order计算更新tag值中的值
+             5、对非虚拟边根据信息进行标注
+             */
+        }
         /// <summary>
         /// 管网主管支管
         /// </summary>
