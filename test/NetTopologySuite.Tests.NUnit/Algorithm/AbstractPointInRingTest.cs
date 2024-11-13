@@ -79,6 +79,15 @@ namespace NetTopologySuite.Tests.NUnit.Algorithm
             RunPtInRing(Location.Exterior, new Coordinate(25.374625374625374, 128.35564435564436), "POLYGON ((0.0 0.0, 0.0 172.0, 100.0 0.0, 0.0 0.0))");
             RunPtInRing(Location.Interior, new Coordinate(97.96039603960396, 782.0), "POLYGON ((642.0 815.0, 69.0 764.0, 394.0 966.0, 642.0 815.0))");
         }
+        //<image url="$(ProjectDir)\DocumentImages\PointInLShapePolygon.png"/>
+        /// <summary>
+        /// 测试角点在L型多边形内
+        /// </summary>
+        [Test]
+        public virtual void TestInsideLShapedPolygonal()
+        {
+            RunPtInRing(Location.Interior, new Coordinate(2.319998883, 12.226111119), "POLYGON ((-4.992993243 8.932147865, 1.027347964 8.932147865, 1.027347964 8.945271224, 12.09690177 8.945271224, 12.09690177 21.776636054, 1.991914893 21.776636054, 1.991914893 12.226111119, -4.992993243 12.226111119, -4.992993243 8.932147865))");
+        }
 
         [Test]
         public virtual void TestRobustTriangle()
