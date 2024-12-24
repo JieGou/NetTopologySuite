@@ -9,9 +9,9 @@ namespace NetTopologySuite.Tests.NUnit.Operation.Union
         [Test]
         public void TestSimple()
         {
-            Check(
-                "MULTIPOLYGON (((10 20, 20 20, 20 10, 10 10, 10 20)), ((30 10, 20 10, 20 20, 30 20, 30 10)))",
-                "POLYGON ((10 20, 20 20, 30 20, 30 10, 20 10, 10 10, 10 20))");
+            const string wkt = "MULTIPOLYGON (((10 20, 20 20, 20 10, 10 10, 10 20)), ((30 10, 20 10, 20 20, 30 20, 30 10)))";
+            Check( wkt, "POLYGON ((10 20, 20 20, 30 20, 30 10, 20 10, 10 10, 10 20))");
+            Check(wkt, "POLYGON ((10 10, 10 20, 30 20, 30 10, 10 10))", true);
         }
 
         [Test]
@@ -30,10 +30,10 @@ namespace NetTopologySuite.Tests.NUnit.Operation.Union
                 "MULTIPOLYGON (((10 20, 20 20, 20 10, 10 10, 10 20)), ((30 20, 40 20, 40 10, 30 10, 30 20)))");
         }
 
-        private void Check(string wkt, string wktExpected)
+        private void Check(string wkt, string wktExpected, bool isSimplify = false)
         {
             var geom = Read(wkt);
-            var result = SparsePolygonUnion.Union(geom);
+            var result = SparsePolygonUnion.Union(geom, isSimplify);
             var expected = Read(wktExpected);
             CheckEqual(expected, result);
             TestContext.WriteLine(result);

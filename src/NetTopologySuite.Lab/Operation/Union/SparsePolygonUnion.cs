@@ -10,6 +10,7 @@ using NetTopologySuite.Index.Strtree;
 namespace NetTopologySuite.Operation.Union
 {
     /// <summary>
+    /// 稀疏多边形合并<para/>
     /// Unions a set of polygonal geometries by partitioning them
     /// into connected sets of polygons.
     /// This works best for a <i>sparse</i> set of polygons.
@@ -26,17 +27,28 @@ namespace NetTopologySuite.Operation.Union
     /// <author>mdavis</author>
     public class SparsePolygonUnion
     {
-        public static Geometry Union(ICollection<Geometry> geoms)
+        /// <summary>
+        /// 合并
+        /// </summary>
+        /// <param name="geoms">拟合并的几何对象集合</param>
+        /// <param name="isSimplify">合并的多边形是否简化 默认false</param>
+        /// <returns></returns>
+        public static Geometry Union(ICollection<Geometry> geoms, bool isSimplify = false)
         {
             var op = new SparsePolygonUnion(geoms);
-            return op.Union();
+            return op.Union(isSimplify);
         }
 
-        public static Geometry Union(Geometry geoms)
+        /// <summary>
+        /// 合并
+        /// </summary>
+        /// <param name="geoms"></param>
+        /// <returns></returns>
+        public static Geometry Union(Geometry geoms, bool isSimplify = false)
         {
             var polys = PolygonExtracter.GetPolygons(geoms);
             var op = new SparsePolygonUnion(polys);
-            return op.Union();
+            return op.Union(isSimplify);
         }
 
         private readonly ICollection<Geometry> _inputPolys;
@@ -45,6 +57,10 @@ namespace NetTopologySuite.Operation.Union
         private readonly List<PolygonNode> _nodes = new List<PolygonNode>();
         //private GeometryFactory _geomFactory;
 
+        /// <summary>
+        /// 构造方法
+        /// </summary>
+        /// <param name="polys">多边形集合</param>
         public SparsePolygonUnion(ICollection<Geometry> polys)
         {
             this._inputPolys = polys;
@@ -52,8 +68,11 @@ namespace NetTopologySuite.Operation.Union
             if (_inputPolys == null)
                 _inputPolys = new List<Geometry>();
         }
-
-        public Geometry Union()
+        /// <summary>
+        /// 合并
+        /// </summary>
+        /// <returns></returns>
+        public Geometry Union(bool isSimplify = false)
         {
             if (_inputPolys.Count == 0)
                 return null;
@@ -62,14 +81,23 @@ namespace NetTopologySuite.Operation.Union
 
             //--- cluster the geometries
             foreach (var queryNode in _nodes)
+            {
                 _index.Query(queryNode.Envelope, new PolygonNodeVisitor(queryNode));
+            }
 
             //--- compute union of each cluster
             var clusterGeom = new List<Geometry>();
-            foreach (var node in _nodes) {
+            foreach (var node in _nodes)
+            {
                 var geom = node.Union();
                 if (geom == null) continue;
-                clusterGeom.Add(geom);
+                // 去除多边形边多余点
+                if (isSimplify && geom is Polygon polygon)
+                {
+                    var simplifyPolygon = Simplify.TopologyPreservingSimplifier.Simplify(polygon, 0.0005);
+                    clusterGeom.Add(simplifyPolygon);
+                }
+                else clusterGeom.Add(geom);
             }
 
             var geomFactory = _inputPolys.First().Factory;
@@ -91,7 +119,9 @@ namespace NetTopologySuite.Operation.Union
             _nodes.Add(node);
             _index.Insert(poly.EnvelopeInternal, node);
         }
-
+        /// <summary>
+        /// 多边形节点类
+        /// </summary>
         private class PolygonNode
         {
             private readonly int _id;
@@ -112,7 +142,9 @@ namespace NetTopologySuite.Operation.Union
             }
 
             public Geometry Polygon => _poly;
-
+            /// <summary>
+            /// 矩形包围框
+            /// </summary>
             public Envelope Envelope => _poly.EnvelopeInternal;
 
             //public bool Intersects(PolygonNode node)
