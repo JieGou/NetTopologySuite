@@ -45,15 +45,18 @@ namespace NetTopologySuite.Tests.NUnit.Operation.Polygonize
 "POLYGON ((4 0, 5 3, 6 0, 4 0))"
     });
         }
+
         [Test]
         public void TestPolygonal1()
         {
+            //<image url="$(ProjectDir)\DocumentImages\TestPolygonal1_before.png"/>
             CheckPolygonize(true, new string[]{
-        "LINESTRING (100 100, 100 300, 300 300, 300 100, 100 100)",
-        "LINESTRING (150 150, 150 250, 250 250, 250 150, 150 150)"
-    },
+            "LINESTRING (100 100, 100 300, 300 300, 300 100, 100 100)",
+            "LINESTRING (150 150, 150 250, 250 250, 250 150, 150 150)"
+        },
+            //<image url="$(ProjectDir)\DocumentImages\TestPolygonal1_after.png"/>
             new string[]{
-"POLYGON ((100 100, 100 300, 300 300, 300 100, 100 100), (150 150, 150 250, 250 250, 250 150, 150 150))"
+            "POLYGON ((100 100, 100 300, 300 300, 300 100, 100 100), (150 150, 150 250, 250 250, 250 150, 150 150))"
     });
         }
         [Test]
@@ -89,19 +92,21 @@ namespace NetTopologySuite.Tests.NUnit.Operation.Polygonize
         [Test]
         public void TestPolygonalOuterOnly2()
         {
-            CheckPolygonize(true, new string[] {
-        "LINESTRING (100 400, 200 400, 200 300)"
-            ,"LINESTRING (200 300, 150 300)"
-            ,"LINESTRING (150 300, 100 300, 100 400)"
-            ,"LINESTRING (200 300, 250 300, 250 200)"
-            ,"LINESTRING (250 200, 200 200)"
-            ,"LINESTRING (200 200, 150 200, 150 300)"
-            ,"LINESTRING (250 200, 300 200, 300 100, 200 100, 200 200)"
-    },
-            new string[]{
-        "POLYGON ((150 300, 100 300, 100 400, 200 400, 200 300, 150 300))"
-       ,"POLYGON ((200 200, 250 200, 300 200, 300 100, 200 100, 200 200))"
-    });
+            CheckPolygonize(true, new string[]
+            {
+                 "LINESTRING (100 400, 200 400, 200 300)"
+                ,"LINESTRING (200 300, 150 300)"
+                ,"LINESTRING (150 300, 100 300, 100 400)"
+                ,"LINESTRING (200 300, 250 300, 250 200)"
+                ,"LINESTRING (250 200, 200 200)"
+                ,"LINESTRING (200 200, 150 200, 150 300)"
+                ,"LINESTRING (250 200, 300 200, 300 100, 200 100, 200 200)"
+            },
+            new string[]
+            {
+                "POLYGON ((150 300, 100 300, 100 400, 200 400, 200 300, 150 300))"
+               ,"POLYGON ((200 200, 250 200, 300 200, 300 100, 200 100, 200 200))"
+            });
         }
 
         readonly string[] LINES_CHECKERBOARD = new string[] {
@@ -148,7 +153,7 @@ namespace NetTopologySuite.Tests.NUnit.Operation.Polygonize
         public void TestNonNodedWithHoleNotAssignable()
         {
             CheckPolygonizeNoError(
-                new []{
+                new[]{
                     "MULTILINESTRING ((10 90, 30 90, 30 30, 70 30, 70 90, 90 90, 90 10, 10 10, 10 90), (30 90, 70 90, 70 30, 30 30, 30 90))"
                 });
         }
@@ -160,6 +165,33 @@ namespace NetTopologySuite.Tests.NUnit.Operation.Polygonize
                 "MULTILINESTRING ((0 0, 2 0, 2 2, 0 2, 0 0), (0 0, 1 1), (2 2, 4 4, 2 4, 4 2, 2 2))",
                 "LINESTRING (2 2, 4 2, 2 4, 4 4, 2 2)"
                 );
+        }
+        /// <summary>
+        /// 测试多边形 悬挂线与切割线
+        /// </summary>
+        [Test]
+        public void TestPolygonalDanglingAndCutLines()
+        {
+            //<image url="$(ProjectDir)\DocumentImages\TestPolygonalDanglingAndCutLines.png"/>
+            string[] inputWKT = new string[]
+            {
+              "LINESTRING (0 0, 10 10)",
+              "LINESTRING (185 221, 100 100)",
+              "LINESTRING (185 221, 88 275, 180 316)",
+              "LINESTRING (185 221, 292 281, 180 316)",
+              "LINESTRING (189 98, 83 187, 185 221)",
+              "LINESTRING (189 98, 325 168, 185 221)",
+              "LINESTRING (140 280, 200 300)",
+              "LINESTRING (200 300, 220 270)",
+              "LINESTRING (220 270, 180 250)",
+              "LINESTRING (180 250, 140 280)",
+              "LINESTRING (180 250, 185 221)",
+            };
+            //<image url="$(ProjectDir)\DocumentImages\Polygonize_DanglingLines.png"/>
+            //<image url="$(ProjectDir)\DocumentImages\Polygonize_CutLines.png"/>
+            CheckPolygonizeDanglingAndCuts(inputWKT,
+                                           "MULTILINESTRING ((185 221, 100 100), (0 0, 10 10))",
+                                           "LINESTRING (180 250, 185 221)");
         }
 
         [Test]
@@ -213,6 +245,30 @@ namespace NetTopologySuite.Tests.NUnit.Operation.Polygonize
              * Use topological equality to handle differences in ring orientation and order
              */
             bool isSameLinework = expected.EqualsTopologically(actual);
+            Assert.That(isSameLinework, Is.True);
+        }
+
+        private void CheckPolygonizeDanglingAndCuts(string[] inputWKT, string expectedWKT_Dangling, string expectedWKT_Cut)
+        {
+            var polygonizer = new Polygonizer();
+            polygonizer.Add(ReadList(inputWKT));
+
+            var danglingActualList = polygonizer.GetDangles();
+            var expected = Read(expectedWKT_Dangling);
+            var actual = expected.Factory.BuildGeometry(danglingActualList);
+            /*
+             * Use topological equality to handle differences in ring orientation and order
+             */
+            bool isSameLinework = expected.EqualsTopologically(actual);
+            Assert.That(isSameLinework, Is.True);
+
+            var cutActualList = polygonizer.GetCutEdges();
+            var cutExpected = Read(expectedWKT_Cut);
+            actual = expected.Factory.BuildGeometry(cutActualList);
+            /*
+             * Use topological equality to handle differences in ring orientation and order
+             */
+            isSameLinework = cutExpected.EqualsTopologically(actual);
             Assert.That(isSameLinework, Is.True);
         }
     }

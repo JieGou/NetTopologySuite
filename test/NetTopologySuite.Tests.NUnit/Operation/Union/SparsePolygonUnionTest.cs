@@ -10,16 +10,19 @@ namespace NetTopologySuite.Tests.NUnit.Operation.Union
         public void TestSimple()
         {
             const string wkt = "MULTIPOLYGON (((10 20, 20 20, 20 10, 10 10, 10 20)), ((30 10, 20 10, 20 20, 30 20, 30 10)))";
-            Check( wkt, "POLYGON ((10 20, 20 20, 30 20, 30 10, 20 10, 10 10, 10 20))");
+            Check(wkt, "POLYGON ((10 20, 20 20, 30 20, 30 10, 20 10, 10 10, 10 20))");
             Check(wkt, "POLYGON ((10 10, 10 20, 30 20, 30 10, 10 10))", true);
         }
 
         [Test]
         public void TestSimple3()
         {
-            Check(
-                "MULTIPOLYGON (((10 20, 20 20, 20 10, 10 10, 10 20)), ((30 10, 20 10, 20 20, 30 20, 30 10)), ((25 30, 30 30, 30 20, 25 20, 25 30)))",
-                "POLYGON ((10 10, 10 20, 20 20, 25 20, 25 30, 30 30, 30 20, 30 10, 20 10, 10 10))");
+            //<image url="$(ProjectDir)\DocumentImages\PolygonUnion01_before.png"/>
+            const string wkt = "MULTIPOLYGON (((10 20, 20 20, 20 10, 10 10, 10 20)), ((30 10, 20 10, 20 20, 30 20, 30 10)), ((25 30, 30 30, 30 20, 25 20, 25 30)))";
+            //<image url="$(ProjectDir)\DocumentImages\PolygonUnion01_after.png"/>
+            Check(wkt, "POLYGON ((10 10, 10 20, 20 20, 25 20, 25 30, 30 30, 30 20, 30 10, 20 10, 10 10))");
+            //<image url="$(ProjectDir)\DocumentImages\PolygonUnion01_afterSimplify.png"/>
+            Check(wkt, "POLYGON ((10 10, 10 20, 25 20, 25 30, 30 30, 30 10, 10 10))",true);
         }
 
         [Test]
@@ -39,5 +42,4 @@ namespace NetTopologySuite.Tests.NUnit.Operation.Union
             TestContext.WriteLine(result);
         }
     }
-
 }

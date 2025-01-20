@@ -52,6 +52,9 @@ namespace NetTopologySuite.Operation.Union
         }
 
         private readonly ICollection<Geometry> _inputPolys;
+        /// <summary>
+        /// STR树
+        /// </summary>
         private STRtree<PolygonNode> _index;
         private int _count;
         private readonly List<PolygonNode> _nodes = new List<PolygonNode>();
@@ -103,7 +106,9 @@ namespace NetTopologySuite.Operation.Union
             var geomFactory = _inputPolys.First().Factory;
             return geomFactory.BuildGeometry(clusterGeom);
         }
-
+        /// <summary>
+        /// 载入(多边形)到STR树
+        /// </summary>
         private void LoadIndex(/*IEnumerable<Geometry> inputPolys*/)
         {
             _index = new STRtree<PolygonNode>();
@@ -130,6 +135,11 @@ namespace NetTopologySuite.Operation.Union
             private PolygonNode _root;
             private List<PolygonNode> _nodes;
 
+            /// <summary>
+            /// 构造函数
+            /// </summary>
+            /// <param name="id">序号</param>
+            /// <param name="poly">多边形</param>
             public PolygonNode(int id, Geometry poly)
             {
                 _id = id;

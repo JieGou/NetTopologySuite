@@ -82,7 +82,7 @@ namespace NetTopologySuite.Planargraph
         }
 
         /// <summary>
-        ///
+        /// ±ﬂ≈≈–Ú
         /// </summary>
         private void SortEdges()
         {

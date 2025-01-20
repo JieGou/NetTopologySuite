@@ -666,6 +666,9 @@ namespace NetTopologySuite.Tests.NUnit.Operation.Buffer
                 .TestContains();
         }
 
+        /// <summary>
+        /// 使用Buffer函数distance为0快速合并
+        /// </summary>
         [Test]
         public void TestQuickPolygonUnion()
         {
