@@ -32,6 +32,14 @@ namespace NetTopologySuite.Tests.NUnit.Operation.Union
                 "MULTIPOLYGON (((10 20, 20 20, 20 10, 10 10, 10 20)), ((30 20, 40 20, 40 10, 30 10, 30 20)))",
                 "MULTIPOLYGON (((10 20, 20 20, 20 10, 10 10, 10 20)), ((30 20, 40 20, 40 10, 30 10, 30 20)))");
         }
+        //<image url="$(ProjectDir)\DocumentImages\SegmentCollinearUnionError.png"/>
+        [Test]
+        public void TestSegmentCollinearUnion()
+        {
+            Check(
+                "MULTIPOLYGON (((45.78178 42.07139, 46.52059 23.00464, 23.13876 32.82088, 36.9979 43.31064, 45.78178 42.07139)), ((69.92279 38.66554, 36.99791 43.31064, 45.48486 49.73426, 44.88126 65.31143, 69.92279 38.66554)))",
+                "MULTIPOLYGON (((10 20, 20 20, 20 10, 10 10, 10 20)), ((30 20, 40 20, 40 10, 30 10, 30 20)))");
+        }
 
         private void Check(string wkt, string wktExpected, bool isSimplify = false)
         {

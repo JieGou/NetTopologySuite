@@ -12,6 +12,9 @@ using NetTopologySuite.Utilities;
 
 namespace Open.Topology.TestRunner.Functions
 {
+    /// <summary>
+    /// 求交点函数
+    /// </summary>
     public static class NodingFunctions
     {
         public static bool IsNodingValid(Geometry geom)
@@ -92,6 +95,11 @@ namespace Open.Topology.TestRunner.Functions
             return SegmentStringUtil.ToGeometry(noder.GetNodedSubstrings(), geom.Factory);
         }
 
+        /// <summary>
+        /// 交点分段
+        /// </summary>
+        /// <param name="geom"></param>
+        /// <returns></returns>
         public static Geometry MCIndexNoding(Geometry geom)
         {
             INoder noder = new MCIndexNoder(new IntersectionAdder(new RobustLineIntersector()));
